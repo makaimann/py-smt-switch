@@ -9,7 +9,11 @@ class TermBase(metaclass=ABCMeta):
 
     @abstractproperty
     def children(self):
-        raise NotImplementedError
+        pass
+
+    @abstractproperty
+    def sort(self):
+        pass
 
     @property
     def solver(self):
@@ -28,3 +32,19 @@ class CVC4Term(TermBase):
     def __init__(self, solver, op, solver_term):
         super().__init__(solver, op, solver_term)
 
+    def children(self):
+        raise NotImplementedError
+
+    def sort():
+        raise NotImplementedError
+
+
+class Z3Term(TermBase):
+    def __init__(self, solver, op, solver_term):
+        super().__init__(solver, op, solver_term)
+
+    def children(self):
+        raise NotImplementedError
+
+    def sort():
+        raise NotImplementedError

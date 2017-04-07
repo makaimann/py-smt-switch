@@ -121,13 +121,22 @@ class Z3Solver(SolverBase):
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
-        return self._z3Consts[sort.__class__](value, *sort.params)
+        z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
+        tconst = term.Z3Term(self, None, z3tconst)
+        return tconst
 
     def apply_fun(self, fun, *args):
-        return self._z3Funs[fun.__class__](*fun.params, *args)
+        z3expr = self._z3Funs[fun.__class__](*fun.params, *[arg.solver_term for arg in args])
+        expr = term.Z3Term(self, fun, z3expr)
+        return expr
 
     def Assert(self, constraints):
-        self._solver.add(constraints)
+        if isinstance(constraints, list):
+            # get z3 terms
+            constraints = [c.solver_term for c in constraints]
+            self._solver.add(constraints)
+        else:
+            self._solver.add(constraints.solver_term)
 
     def assertions(self):
         return self._solver.assertions()
@@ -142,7 +151,7 @@ class Z3Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._solver.model().eval(var).as_string()
+            return self._solver.model().eval(var.solver_term).as_string()
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
@@ -237,7 +246,7 @@ class CVC4Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._smt.getValue(var).toString()
+            return self._smt.getValue(var.solver_term).toString()
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
