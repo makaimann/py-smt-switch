@@ -1,5 +1,4 @@
 from abc import ABCMeta
-# from enum import Enum  # not being used any more. Keeping around for now just in case
 from math import inf
 import inspect
 
@@ -21,8 +20,18 @@ class FunctionBase(metaclass=ABCMeta):
     def params(self):
         return ()
 
+    def __call__(self, *args):
+        # don't really need to do this check
+        # because should never be calling a
+        # 0-arity function
+        # just a check against incorrect use
+        if args:
+            return args[0].solver.apply_fun(self, *args)
+        else:
+            raise ValueError('Can\'t call a 0-arity function.')
+
     def __repr__(self):
-        return '({} {})'.format(self.__class__.__name__, self.params)
+        return self.__class__.__name__
 
 
 class extract(FunctionBase):
@@ -127,27 +136,7 @@ class GEQ(FunctionBase):
         super().__init__(self.arity, '(>= arg1 arg2)')
 
 
-# deprecated -- leaving here just in case
-# slightly worried about potential misuse of classes when used as symbols
-#class Symbol(Enum):
-#    extract = extract
-#    Equals = Equals
-#    Not = Not
-#    And = And
-#    Or = Or
-#    Ite = Ite
-#    Sub = Sub
-#    Plus = Plus
-#    LT = LT
-#    LEQ = LEQ
-#    GT = GT
-#    GEQ = GEQ
-
-
 def declare_fun(identifier, *args):
-    # Deprecated Symbol -- keeping around for now in case we switch back
-    # if isinstance(identifier, Symbol):
-    #     return identifier.value(*args)
     if isinstance(identifier, str):
         if identifier[0] == '(':
             # TODO: Parse S expression

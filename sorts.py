@@ -1,5 +1,4 @@
 from abc import ABCMeta, abstractmethod
-# from enum import Enum  # no longer being used
 import inspect
 
 
@@ -63,19 +62,8 @@ class Bool(SortBase):
     def __init__(self):
         super().__init__('Bool', [])
 
-#deprecated -- using functions themselves as identifiers
-#class Symbol(Enum):
-#    BitVec = BitVec
-#    Int = Int
-#    Real = Real
-#    Bool = Bool
-
 
 def construct_sort(identifier, *args):
-    #if isinstance(identifier, Symbol):
-        # The value attribute is actually a sort class
-        # This is instantiating a class
-    #    return identifier.value(*args)
     if isinstance(identifier, str):
         if identifier[0] == '(':
             # TODO: parse S expression

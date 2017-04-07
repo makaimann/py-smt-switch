@@ -2,14 +2,19 @@ from abc import ABCMeta, abstractproperty
 
 
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, solver, op, solver_term):
+    def __init__(self, solver, op, solver_term, children):
         self._solver = solver
         self._op = op
         self._solver_term = solver_term
+        # Note: instead of querying solvers and translating,
+        #       it's easier to just pass this information
+        #       directly since it's always known when
+        #       instantiating a term
+        self._children = children
 
-    @abstractproperty
+    @property
     def children(self):
-        pass
+        return self._children
 
     @abstractproperty
     def sort(self):
@@ -29,22 +34,28 @@ class TermBase(metaclass=ABCMeta):
 
 
 class CVC4Term(TermBase):
-    def __init__(self, solver, op, solver_term):
-        super().__init__(solver, op, solver_term)
+    def __init__(self, solver, op, solver_term, children):
+        super().__init__(solver, op, solver_term, children)
 
-    def children(self):
-        raise NotImplementedError
+    # for now just returns a string
+    # will evenutally translate back to sort
+    @property
+    def sort(self):
+        return self.solver_term.getType().toString()
 
-    def sort():
-        raise NotImplementedError
+    def __repr__(self):
+        return self.solver_term.toString()
 
 
 class Z3Term(TermBase):
-    def __init__(self, solver, op, solver_term):
-        super().__init__(solver, op, solver_term)
+    def __init__(self, solver, op, solver_term, children):
+        super().__init__(solver, op, solver_term, children)
 
-    def children(self):
-        raise NotImplementedError
+    # for now just returns a string
+    # will eventually translate back to sort
+    @property
+    def sort(self):
+        return self.solver_term.sort().sexpr()
 
-    def sort():
-        raise NotImplementedError
+    def __repr__(self):
+        return self.solver_term.sexpr()

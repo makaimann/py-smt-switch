@@ -115,31 +115,40 @@ class Z3Solver(SolverBase):
     def declare_const(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
-        const = term.Z3Term(self, None, z3const)
+        const = term.Z3Term(self, None, z3const, [])
         return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
-        tconst = term.Z3Term(self, None, z3tconst)
+        tconst = term.Z3Term(self, None, z3tconst, [])
         return tconst
 
     def apply_fun(self, fun, *args):
         z3expr = self._z3Funs[fun.__class__](*fun.params, *[arg.solver_term for arg in args])
-        expr = term.Z3Term(self, fun, z3expr)
+        expr = term.Z3Term(self, fun, z3expr, list(args))
         return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
             # get z3 terms
-            constraints = [c.solver_term for c in constraints]
-            self._solver.add(constraints)
+            for constraint in constraints:
+                if constraint.sort != 'Bool':
+                    raise ValueError('Can only assert formulas of sort Bool. ' +
+                                     'Received sort: {}'.format(constraint.sort))
+                self._solver.add(constraints)
         else:
+            if constraints.sort != 'Bool':
+                raise ValueError('Can only assert formulas of sort Bool. ' +
+                                 'Received sort: {}'.format(constraints.sort))
             self._solver.add(constraints.solver_term)
 
     def assertions(self):
-        return self._solver.assertions()
+        # had issue with returning an iterable for CVC4
+        # thus to keep things consistent, returning a list here
+        # it also mimics both z3 and cvc4's normal behavior to use a list
+        return [assertion.sexpr() for assertion in self._solver.assertions()]
 
     def get_model(self):
         if self.sat:
@@ -163,7 +172,10 @@ class CVC4Solver(SolverBase):
     # probably better for memory reasons?
     def __init__(self):
         super().__init__()
-        self._em = CVC4.ExprManager()
+        # set output language to smt2.5
+        opts = CVC4.Options()
+        opts.setOutputLanguage(CVC4.OUTPUT_LANG_SMTLIB_V2_5)
+        self._em = CVC4.ExprManager(opts)
         self._smt = CVC4.SmtEngine(self._em)
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
@@ -209,12 +221,12 @@ class CVC4Solver(SolverBase):
     def declare_const(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = term.CVC4Term(self, None, cvc4const)
+        const = term.CVC4Term(self, None, cvc4const, [])
         return const
 
     def theory_const(self, sort, value):
         cvc4tconst = self._em.mkConst(self._CVC4Consts[sort.__class__](*sort.params, value))
-        tconst = term.CVC4Term(self, None, cvc4tconst)
+        tconst = term.CVC4Term(self, None, cvc4tconst, [])
         return tconst
 
     def apply_fun(self, fun, *args):
@@ -223,17 +235,25 @@ class CVC4Solver(SolverBase):
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
         cvc4term = self._em.mkExpr(cvc4fun, *[arg.solver_term for arg in args])
-        expr = term.CVC4Term(self, fun, cvc4term)
+        expr = term.CVC4Term(self, fun, cvc4term, list(args))
         return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
             for constraint in constraints:
+                if constraint.sort != 'Bool':
+                    raise ValueError('Can only assert formulas of sort Bool. ' +
+                                     'Received sort: {}'.format(constraint.sort))
                 self._smt.assertFormula(constraint.solver_term)
         else:
+            if constraints.sort != 'Bool':
+                raise ValueError('Can only assert formulas of sort Bool. ' +
+                                 'Received sort: {}'.format(constraints.sort))
             self._smt.assertFormula(constraints.solver_term)
 
     def assertions(self):
+        # TODO: fix iter error
+        # Wanted these to be an iter but CVC4 threw an exception
         return [expr.toString() for expr in self._smt.getAssertions()]
 
     def get_model(self):
