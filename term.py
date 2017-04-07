@@ -2,29 +2,29 @@ from abc import ABCMeta, abstractproperty
 
 
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, solver, op, *args):
+    def __init__(self, solver, op, solver_term):
         self._solver = solver
         self._op = op
-        self._args = args
+        self._solver_term = solver_term
 
     @abstractproperty
     def children(self):
         raise NotImplementedError
 
     @property
+    def solver(self):
+        return self._solver
+
+    @property
     def op(self):
         return self._op
 
     @property
-    def args(self):
-        return self._args
-
-    @property
-    def solver(self):
-        return self._solver
+    def solver_term(self):
+        return self._solver_term
 
 
 class CVC4Term(TermBase):
-    def __init__(self, solver, op, *args):
-        super().__init__(solver, op, *args)
+    def __init__(self, solver, op, solver_term):
+        super().__init__(solver, op, solver_term)
 
