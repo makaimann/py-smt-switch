@@ -22,3 +22,4 @@ class Term(metaclass=ABCMeta):
     @property
     def solver(self):
         return self._solver
+

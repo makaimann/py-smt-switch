@@ -68,25 +68,25 @@ class SolverBase(metaclass=ABCMeta):
 class Z3Solver(SolverBase):
     # could also use class name instead of class itself as key
     # probably better for memory reasons?
-    _z3Sorts = {'BitVec': z3.BitVec,
-                'Int': z3.Int,
-                'Real': z3.Real,
-                'Bool': z3.Bool}
-    _z3Funs = {'extract': z3.Extract,
-               'Not': z3.Not,
-               'Equals': lambda arg1, arg2: arg1 == arg2,
-               'And': z3.And,
-               'Or': z3.Or,
-               'Ite': z3.If,
-               'Sub': lambda arg1, arg2: arg1 - arg2,
-               'Plus': lambda arg1, arg2: arg1 + arg2,
-               'LT': lambda arg1, arg2: arg1 < arg2,
-               'LEQ': lambda arg1, arg2: arg1 <= arg2,
-               'GT': lambda arg1, arg2: arg1 > arg2,
-               'GEQ': lambda arg1, arg2: arg1 >= arg2}
-    _z3Consts = {'BitVec': z3.BitVecVal,
-                 'Int': z3.IntVal,
-                 'Real': z3.RealVal}
+    _z3Sorts = {sorts.BitVec: z3.BitVec,
+                sorts.Int: z3.Int,
+                sorts.Real: z3.Real,
+                sorts.Bool: z3.Bool}
+    _z3Funs = {functions.extract: z3.Extract,
+               functions.Not: z3.Not,
+               functions.Equals: lambda arg1, arg2: arg1 == arg2,
+               functions.And: z3.And,
+               functions.Or: z3.Or,
+               functions.Ite: z3.If,
+               functions.Sub: lambda arg1, arg2: arg1 - arg2,
+               functions.Plus: lambda arg1, arg2: arg1 + arg2,
+               functions.LT: lambda arg1, arg2: arg1 < arg2,
+               functions.LEQ: lambda arg1, arg2: arg1 <= arg2,
+               functions.GT: lambda arg1, arg2: arg1 > arg2,
+               functions.GEQ: lambda arg1, arg2: arg1 >= arg2}
+    _z3Consts = {sorts.BitVec: z3.BitVecVal,
+                 sorts.Int: z3.IntVal,
+                 sorts.Real: z3.RealVal}
     _z3Options = {'produce-models': 'model'}
 
     def __init__(self):
@@ -112,15 +112,15 @@ class Z3Solver(SolverBase):
         z3.set_param(self, optionstr, value)
 
     def declare_const(self, name, sort):
-        return self._z3Sorts[sort.__class__.__name__](name, *sort.params)
+        return self._z3Sorts[sort.__class__](name, *sort.params)
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
-        return self._z3Consts[sort.__class__.__name__](value, *sort.params)
+        return self._z3Consts[sort.__class__](value, *sort.params)
 
     def apply_fun(self, fun, *args):
-        return self._z3Funs[fun.__class__.__name__](*fun.params, *args)
+        return self._z3Funs[fun.__class__](*fun.params, *args)
 
     def Assert(self, constraints):
         self._solver.add(constraints)
@@ -152,25 +152,25 @@ class CVC4Solver(SolverBase):
         super().__init__()
         self._em = CVC4.ExprManager()
         self._smt = CVC4.SmtEngine(self._em)
-        self._CVC4Sorts = {'BitVec': self._em.mkBitVectorType,
-                           'Int': self._em.integerType,
-                           'Real': self._em.realType,
-                           'Bool': self._em.booleanType}
-        self._CVC4Funs = {'extract': CVC4.BitVectorExtract,
-                          'Equals': CVC4.EQUAL,
-                          'Not': CVC4.NOT,
-                          'And': CVC4.AND,
-                          'Or': CVC4.OR,
-                          'Ite': CVC4.ITE,
-                          'Sub': CVC4.MINUS,
-                          'Plus': CVC4.PLUS,
-                          'LT': CVC4.LT,
-                          'LEQ': CVC4.LEQ,
-                          'GT': CVC4.GT,
-                          'GEQ': CVC4.GEQ}
-        self._CVC4Consts = {'BitVec': CVC4.BitVector,
-                            'Int': CVC4.Integer,
-                            'Real': CVC4.Rational}
+        self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
+                           sorts.Int: self._em.integerType,
+                           sorts.Real: self._em.realType,
+                           sorts.Bool: self._em.booleanType}
+        self._CVC4Funs = {functions.extract: CVC4.BitVectorExtract,
+                          functions.Equals: CVC4.EQUAL,
+                          functions.Not: CVC4.NOT,
+                          functions.And: CVC4.AND,
+                          functions.Or: CVC4.OR,
+                          functions.Ite: CVC4.ITE,
+                          functions.Sub: CVC4.MINUS,
+                          functions.Plus: CVC4.PLUS,
+                          functions.LT: CVC4.LT,
+                          functions.LEQ: CVC4.LEQ,
+                          functions.GT: CVC4.GT,
+                          functions.GEQ: CVC4.GEQ}
+        self._CVC4Consts = {sorts.BitVec: CVC4.BitVector,
+                            sorts.Int: CVC4.Integer,
+                            sorts.Real: CVC4.Rational}
 
     def check_sat(self):
         # rely on Assert for now
@@ -194,14 +194,14 @@ class CVC4Solver(SolverBase):
         self._smt.setOption(optionstr, CVC4.SExpr(value))
 
     def declare_const(self, name, sort):
-        cvc4sort = self._CVC4Sorts[sort.__class__.__name__](*sort.params)
+        cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         return self._em.mkVar(name, cvc4sort)
 
     def theory_const(self, sort, value):
-        return self._em.mkConst(self._CVC4Consts[sort.__class__.__name__](*sort.params, value))
+        return self._em.mkConst(self._CVC4Consts[sort.__class__](*sort.params, value))
 
     def apply_fun(self, fun, *args):
-        cvc4fun = self._CVC4Funs[fun.__class__.__name__]
+        cvc4fun = self._CVC4Funs[fun.__class__]
         # check if just indexer or needs to be evaluated
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
