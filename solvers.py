@@ -3,6 +3,7 @@ import CVC4
 import z3
 import sorts
 import functions
+import term
 
 
 class SolverBase(metaclass=ABCMeta):
@@ -112,7 +113,10 @@ class Z3Solver(SolverBase):
         z3.set_param(self, optionstr, value)
 
     def declare_const(self, name, sort):
-        return self._z3Sorts[sort.__class__](name, *sort.params)
+        z3const = self._z3Sorts[sort.__class__.__name__](name, *sort.params)
+        # should there be a no-op or just use None?
+        const = term.Z3Term(self, None, z3const)
+        return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect

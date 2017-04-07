@@ -1,11 +1,11 @@
 from abc import ABCMeta, abstractproperty
 
 
-class Term(metaclass=ABCMeta):
-    def __init__(self, op, args, solver):
+class TermBase(metaclass=ABCMeta):
+    def __init__(self, solver, op, *args):
+        self._solver = solver
         self._op = op
         self._args = args
-        self._solver = solver
 
     @abstractproperty
     def children(self):
@@ -22,4 +22,9 @@ class Term(metaclass=ABCMeta):
     @property
     def solver(self):
         return self._solver
+
+
+class CVC4Term(TermBase):
+    def __init__(self, solver, op, *args):
+        super().__init__(solver, op, *args)
 
