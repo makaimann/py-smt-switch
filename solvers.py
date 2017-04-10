@@ -3,7 +3,7 @@ import CVC4
 import z3
 import sorts
 import functions
-import term
+import terms
 
 
 class SolverBase(metaclass=ABCMeta):
@@ -115,24 +115,24 @@ class Z3Solver(SolverBase):
     def declare_const(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
-        const = term.Z3Term(self, None, z3const, [])
+        const = terms.Z3Term(self, None, z3const, [])
         return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
-        tconst = term.Z3Term(self, None, z3tconst, [])
+        tconst = terms.Z3Term(self, None, z3tconst, [])
         return tconst
 
     def apply_fun(self, fun, *args):
         z3expr = self._z3Funs[fun.__class__](*fun.params, *[arg.solver_term for arg in args])
-        expr = term.Z3Term(self, fun, z3expr, list(args))
+        expr = terms.Z3Term(self, fun, z3expr, list(args))
         return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
-            # get z3 terms
+            # get z3 termss
             for constraint in constraints:
                 if constraint.sort != 'Bool':
                     raise ValueError('Can only assert formulas of sort Bool. ' +
@@ -160,7 +160,7 @@ class Z3Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._solver.model().eval(var.solver_term).as_string()
+            return self._solver.model().eval(var.solver_term).sexpr()
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
@@ -221,12 +221,12 @@ class CVC4Solver(SolverBase):
     def declare_const(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = term.CVC4Term(self, None, cvc4const, [])
+        const = terms.CVC4Term(self, None, cvc4const, [])
         return const
 
     def theory_const(self, sort, value):
         cvc4tconst = self._em.mkConst(self._CVC4Consts[sort.__class__](*sort.params, value))
-        tconst = term.CVC4Term(self, None, cvc4tconst, [])
+        tconst = terms.CVC4Term(self, None, cvc4tconst, [])
         return tconst
 
     def apply_fun(self, fun, *args):
@@ -234,8 +234,8 @@ class CVC4Solver(SolverBase):
         # check if just indexer or needs to be evaluated
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-        cvc4term = self._em.mkExpr(cvc4fun, *[arg.solver_term for arg in args])
-        expr = term.CVC4Term(self, fun, cvc4term, list(args))
+        cvc4terms = self._em.mkExpr(cvc4fun, *[arg.solver_term for arg in args])
+        expr = terms.CVC4Term(self, fun, cvc4terms, list(args))
         return expr
 
     def Assert(self, constraints):

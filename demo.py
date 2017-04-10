@@ -4,18 +4,6 @@ import functions
 import solvers
 
 # To change solvers, simply instantiate a different solver
-# In this design, sorts and functions are independent of the solver
-# but variables, constants, expressions and formulas are solver-specific objects
-
-# Current Concerns
-# 1. Every sort and function is a class, regardless of whether it carries any data.
-# 2. Unsure how pythonic the interface should be
-# 3. Using lots of dictionaries for mapping from solver independent classes
-#    (i.e. Sorts and Functions) to solver-specific instantiation functions
-# 4. Haven't worked out correct model interface yet
-# 5. Connectives/Predicates are indistinguishable from functions of output sort
-#    other than Bool -- depends on user to use them correctly
-# 6. Order of arguments within params/args passed to function
 
 # Instantiate a solver
 s = solvers.CVC4Solver()
@@ -69,9 +57,9 @@ subbv2_10 = efun10(bv2)
 eqfun = functions.Equals()
 notfun = functions.Not()
 eq10 = eqfun(subbv1_10, subbv2_10)
-eq32 = eqfun(subbv1_32, subbv2_32)
-neq32 = notfun(eq32)
 
+# you can also use overloaded operators
+neq32 = subbv1_32 != subbv2_32
 
 # And the constraints together -- alternatively could
 # assert each individually
