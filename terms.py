@@ -1,5 +1,6 @@
 from abc import ABCMeta, abstractproperty
 import functions
+import sorts
 
 
 class TermBase(metaclass=ABCMeta):
@@ -45,6 +46,12 @@ class TermBase(metaclass=ABCMeta):
 
     def __sub__(self, other):
         return self._solver.apply_fun(functions.Sub(), self, other)
+
+    def __neg__(self):
+        # unfortunately not a very robust way of inferring the sort
+        # will be better when sorts are translated
+        zero = self._solver.theory_const(eval('sorts.{}()'.format(self.sort)), 0)
+        return self._solver.apply_fun(functions.Sub(), zero, self)
 
     def __lt__(self, other):
         return self._solver.apply_fun(functions.LT(), self, other)

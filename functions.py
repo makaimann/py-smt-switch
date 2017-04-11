@@ -25,7 +25,10 @@ class FunctionBase(metaclass=ABCMeta):
         # because should never be calling a
         # 0-arity function
         # just a check against incorrect use
-        if args:
+        if args and isinstance(args[0], list):
+            args = args[0]
+            return args[0].solver.apply_fun(self, *args)
+        elif args:
             return args[0].solver.apply_fun(self, *args)
         else:
             raise ValueError('Can\'t call a 0-arity function.')

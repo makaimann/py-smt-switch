@@ -193,9 +193,10 @@ class CVC4Solver(SolverBase):
                           functions.LEQ: CVC4.LEQ,
                           functions.GT: CVC4.GT,
                           functions.GEQ: CVC4.GEQ}
-        self._CVC4Consts = {sorts.BitVec: CVC4.BitVector,
-                            sorts.Int: CVC4.Integer,
-                            sorts.Real: CVC4.Rational}
+        self._CVC4Consts = {sorts.BitVec: [self._em.mkConst, CVC4.BitVector],
+                            sorts.Int: [self._em.mkConst, CVC4.Rational],
+                            sorts.Real: [self._em.mkConst, CVC4.Rational],
+                            sorts.Bool: [self._em.mkBoolConst, None]}
 
     def check_sat(self):
         # rely on Assert for now
@@ -225,16 +226,30 @@ class CVC4Solver(SolverBase):
         return const
 
     def theory_const(self, sort, value):
-        cvc4tconst = self._em.mkConst(self._CVC4Consts[sort.__class__](*sort.params, value))
+        fun = self._CVC4Consts[sort.__class__][0]
+        if self._CVC4Consts[sort.__class__][1]:
+            cvc4tconst = fun(self._CVC4Consts[sort.__class__][1](*sort.params, value))
+        else:
+            cvc4tconst = fun(*sort.params, value)
         tconst = terms.CVC4Term(self, None, cvc4tconst, [])
         return tconst
 
     def apply_fun(self, fun, *args):
         cvc4fun = self._CVC4Funs[fun.__class__]
         # check if just indexer or needs to be evaluated
+        if isinstance(args[0], list):
+            args = tuple(args[0])
+
+        # handle zero and one argument cases for and
+        if fun.arity >= 2:
+            if len(args) == 0:
+                return terms.CVC4Term(self, None, self._em.mkBoolConst(True), [])
+            elif len(args) == 1:
+                return args[0]
+        
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-        cvc4terms = self._em.mkExpr(cvc4fun, *[arg.solver_term for arg in args])
+        cvc4terms = self._em.mkExpr(cvc4fun, [arg.solver_term for arg in args])
         expr = terms.CVC4Term(self, fun, cvc4terms, list(args))
         return expr
 
