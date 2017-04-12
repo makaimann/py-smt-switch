@@ -21,10 +21,6 @@ class FunctionBase(metaclass=ABCMeta):
         return ()
 
     def __call__(self, *args):
-        # don't really need to do this check
-        # because should never be calling a
-        # 0-arity function
-        # just a check against incorrect use
         if args and isinstance(args[0], list):
             args = args[0]
             return args[0].solver.apply_fun(self, *args)
@@ -98,14 +94,14 @@ class Ite(FunctionBase):
 
 
 class Sub(FunctionBase):
-    arity = 2  # or does smt lib allow for arbitrary number of arguments?
+    arity = 2
 
     def __init__(self):
         super().__init__(self.arity, '(- arg1 arg2)')
 
 
 class Plus(FunctionBase):
-    arity = 2
+    arity = 2  # or does smt lib allow for arbitrary number of arguments?
 
     def __init__(self):
         super().__init__(self.arity, '(+ arg1 arg2)')
