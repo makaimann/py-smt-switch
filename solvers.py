@@ -4,6 +4,7 @@ import z3
 import sorts
 import functions
 import terms
+from fractions import Fraction
 
 
 class SolverBase(metaclass=ABCMeta):
@@ -126,7 +127,10 @@ class Z3Solver(SolverBase):
         return tconst
 
     def apply_fun(self, fun, *args):
-        z3expr = self._z3Funs[fun.__class__](*fun.params, *[arg.solver_term for arg in args])
+        solver_args = list(map(lambda arg:
+                               arg.solver_term if isinstance(arg, terms.Z3Term)
+                               else arg, args))
+        z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
         expr = terms.Z3Term(self, fun, z3expr, list(args))
         return expr
 
@@ -193,10 +197,26 @@ class CVC4Solver(SolverBase):
                           functions.LEQ: CVC4.LEQ,
                           functions.GT: CVC4.GT,
                           functions.GEQ: CVC4.GEQ}
-        self._CVC4Consts = {sorts.BitVec: [self._em.mkConst, CVC4.BitVector],
-                            sorts.Int: [self._em.mkConst, CVC4.Rational],
-                            sorts.Real: [self._em.mkConst, CVC4.Rational],
-                            sorts.Bool: [self._em.mkBoolConst, None]}
+
+        # Theory constant functions
+        def create_bv(width, value):
+            return self._em.mkConst(CVC4.BitVector(width, value))
+
+        def create_int(value):
+            return self._em.mkConst(CVC4.Rational(value))
+
+        def create_real(value):
+            if not isinstance(value, Fraction):
+                value = Fraction(value).limit_denominator()
+            return self._em.mkConst(CVC4.Rational(value.numerator, value.denominator))
+
+        def create_bool(value):
+            return self._em.mkBoolConst(value)
+
+        self._CVC4Consts = {sorts.BitVec: create_bv,
+                            sorts.Int: create_int,
+                            sorts.Real: create_real,
+                            sorts.Bool: create_bool}
 
     def check_sat(self):
         # rely on Assert for now
@@ -226,11 +246,7 @@ class CVC4Solver(SolverBase):
         return const
 
     def theory_const(self, sort, value):
-        fun = self._CVC4Consts[sort.__class__][0]
-        if self._CVC4Consts[sort.__class__][1]:
-            cvc4tconst = fun(self._CVC4Consts[sort.__class__][1](*sort.params, value))
-        else:
-            cvc4tconst = fun(*sort.params, value)
+        cvc4tconst = self._CVC4Consts[sort.__class__](*sort.params, value)
         tconst = terms.CVC4Term(self, None, cvc4tconst, [])
         return tconst
 
@@ -238,18 +254,24 @@ class CVC4Solver(SolverBase):
         cvc4fun = self._CVC4Funs[fun.__class__]
         # check if just indexer or needs to be evaluated
         if isinstance(args[0], list):
-            args = tuple(args[0])
+            args = args[0]
 
         # handle zero and one argument cases for and
-        if fun.arity >= 2:
-            if len(args) == 0:
-                return terms.CVC4Term(self, None, self._em.mkBoolConst(True), [])
-            elif len(args) == 1:
-                return args[0]
+        #if fun.arity >= 2:
+        #    if len(args) == 0:
+        #        return terms.CVC4Term(self, None, self._em.mkBoolConst(True), [])
+        #    elif len(args) == 1:
+        #        return args[0]
+
+        solver_args = list(map(lambda arg: arg.solver_term
+                               if isinstance(arg, terms.CVC4Term)
+                               else
+                               self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
+                               args))
         
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-        cvc4terms = self._em.mkExpr(cvc4fun, [arg.solver_term for arg in args])
+        cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
         expr = terms.CVC4Term(self, fun, cvc4terms, list(args))
         return expr
 

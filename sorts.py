@@ -74,3 +74,7 @@ def construct_sort(identifier, *args):
         return identifier(*args)
     else:
         raise ValueError('Expected [str | Sort] and received {}.'.format(type(identifier)))
+
+
+py2sort = {int : Int,
+           bool : Bool}

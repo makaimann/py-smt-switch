@@ -78,6 +78,19 @@ class And(FunctionBase):
     def __init__(self):
         super().__init__(self.arity, '(and args)')
 
+    # Overloading callable FunctionBase
+    def __call__(self, *args):
+        if args and isinstance(args[0], list):
+            args = args[0]
+
+        # With strict=False, (and arg1) --> arg1, (and ) --> True
+        if len(args) > 1:
+            return args[0].solver.apply_fun(self, *args)
+        elif len(args) == 1:
+            return args[0]
+        else:
+            return True
+
 
 class Or(FunctionBase):
     arity = inf  # not sure this is the best way
