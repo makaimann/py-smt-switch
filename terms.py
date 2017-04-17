@@ -1,10 +1,9 @@
-from abc import ABCMeta, abstractproperty
+from abc import ABCMeta
 import functions
-import sorts
 
 
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, solver, op, solver_term, children):
+    def __init__(self, solver, op, solver_term, sort, children):
         self._solver = solver
         self._op = op
         self._solver_term = solver_term
@@ -12,15 +11,20 @@ class TermBase(metaclass=ABCMeta):
         #       it's easier to just pass this information
         #       directly since it's always known when
         #       instantiating a term
+        # have to pass in sort instead of getting from op
+        # because of No_op case i.e. when constructing a const
+        # -- There are no arguments, so sort information is lost
+        # unless passed in directly
+        self._sort = sort
         self._children = children
 
     @property
     def children(self):
         return self._children
 
-    @abstractproperty
+    @property
     def sort(self):
-        pass
+        return self._sort
 
     @property
     def solver(self):
@@ -50,7 +54,7 @@ class TermBase(metaclass=ABCMeta):
     def __neg__(self):
         # unfortunately not a very robust way of inferring the sort
         # will be better when sorts are translated
-        zero = self._solver.theory_const(eval('sorts.{}()'.format(self.sort)), 0)
+        zero = self._solver.theory_const(self.sort, 0)
         return self._solver.apply_fun(functions.Sub(), zero, self)
 
     def __lt__(self, other):
@@ -64,31 +68,19 @@ class TermBase(metaclass=ABCMeta):
 
     def __ge__(self, other):
         return self._solver.apply_fun(functions.GEQ(), self, other)
-        
+
 
 class CVC4Term(TermBase):
-    def __init__(self, solver, op, solver_term, children):
-        super().__init__(solver, op, solver_term, children)
-
-    # for now just returns a string
-    # will evenutally translate back to sort
-    @property
-    def sort(self):
-        return self.solver_term.getType().toString()
+    def __init__(self, solver, op, solver_term, sort, children):
+        super().__init__(solver, op, solver_term, sort, children)
 
     def __repr__(self):
         return self.solver_term.toString()
 
 
 class Z3Term(TermBase):
-    def __init__(self, solver, op, solver_term, children):
-        super().__init__(solver, op, solver_term, children)
-
-    # for now just returns a string
-    # will eventually translate back to sort
-    @property
-    def sort(self):
-        return self.solver_term.sort().sexpr()
+    def __init__(self, solver, op, solver_term, sort, children):
+        super().__init__(solver, op, solver_term, sort, children)
 
     def __repr__(self):
         return self.solver_term.sexpr()

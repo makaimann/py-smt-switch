@@ -1,6 +1,8 @@
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from math import inf
 import inspect
+import sorts
+import config
 
 
 class FunctionBase(metaclass=ABCMeta):
@@ -20,21 +22,48 @@ class FunctionBase(metaclass=ABCMeta):
     def params(self):
         return ()
 
+    @abstractmethod
+    def osort(self, *args):
+        pass
+
     def __call__(self, *args):
+        # handle list argument
         if args and isinstance(args[0], list):
             args = args[0]
-            return args[0].solver.apply_fun(self, *args)
-        elif args:
+
+        if args:
             return args[0].solver.apply_fun(self, *args)
         else:
-            raise ValueError('Can\'t call a 0-arity function.')
+            if config.strict:
+                raise ValueError('In strict mode, you must respect function arity: ' +
+                                 '{}: arity = {}'.format(self.__class__.__name__, self.arity))
+            else:
+                raise ValueError('Incorrect number of arguments for' +
+                                 'function: {}'.format(self.__class__.__name__))
 
     def __repr__(self):
         return self.__class__.__name__
 
 
+class No_op(FunctionBase):
+    arity = {'min': 0,
+             'max': 0}
+
+    def __init__(self):
+        super().__init__(self.arity, 'No_op')
+
+    def osort(self, *args):
+        if len(args) == 0:
+            raise ValueError('No_op is used when constructing constants. ' +
+                             'Therefore its output sort is parameterized by a Term.' +
+                             'Need to provide an argument to determine output sort')
+        else:
+            return args[0].sort
+
+
 class extract(FunctionBase):
-    arity = 1
+    arity = {'min': 0,
+             'max': 0}
 
     def __init__(self, ub, lb):
         super().__init__(self.arity, '(extract BitVec)')
@@ -57,95 +86,169 @@ class extract(FunctionBase):
     def params(self):
         return (self._ub, self._lb)
 
+    def osort(self, *args):
+        return sorts.BitVec(self.width)
+
 
 class Equals(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(= arg1 arg2)')
 
+    def osort(self, *args):
+        return sorts.Bool()
+
 
 class Not(FunctionBase):
-    arity = 1
+    arity = {'min': 1,
+             'max': 1}
 
     def __init__(self):
-        super().__init__(self.arity, '(! formula)')
+        super().__init__(self.arity, '(not formula)')
+
+    def osort(self, *args):
+        return sorts.Bool()
 
 
 class And(FunctionBase):
-    arity = inf  # not sure this is the best way
+    arity = {'min': 2,
+             'max': inf}
 
     def __init__(self):
         super().__init__(self.arity, '(and args)')
 
-    # Overloading callable FunctionBase
-    def __call__(self, *args):
-        if args and isinstance(args[0], list):
-            args = args[0]
+    def osort(self, *args):
+        return sorts.Bool()
 
-        # With strict=False, (and arg1) --> arg1, (and ) --> True
-        if len(args) > 1:
-            return args[0].solver.apply_fun(self, *args)
-        elif len(args) == 1:
-            return args[0]
-        else:
-            return True
+    # Overloading callable FunctionBase
+    if not config.strict:
+        def __call__(self, *args):
+            if args and isinstance(args[0], list):
+                args = args[0]
+
+            # With strict=False, (and arg1) --> arg1, (and ) --> True
+            if len(args) > 1:
+                return args[0].solver.apply_fun(self, *args)
+            elif len(args) == 1:
+                return args[0]
+            else:
+                return True
 
 
 class Or(FunctionBase):
-    arity = inf  # not sure this is the best way
+    arity = {'min': 2,
+             'max': inf}
 
     def __init__(self):
         super().__init__(self.arity, '(or args)')
 
+    def osort(self, *args):
+        return sorts.Bool()
+
+    # Overloading callable FunctionBase
+    if not config.strict:
+        def __call__(self, *args):
+            if args and isinstance(args[0], list):
+                args = args[0]
+
+            # With strict=False, (and arg1) --> arg1, (and ) --> True
+            if len(args) > 1:
+                return args[0].solver.apply_fun(self, *args)
+            elif len(args) == 1:
+                return args[0]
+            else:
+                return False
+
 
 class Ite(FunctionBase):
-    arity = 3
+    arity = {'min': 3,
+             'max': 3}
 
     def __init__(self):
         super().__init__(self.arity, '(ite cond arg1 arg2)')
 
+    def osort(self, *args):
+        if len(args) == 0:
+            raise ValueError(self.__class__name +
+                             '\'s output sort is parameterized by its arguments. ' +
+                             'Need an argument to determine output sort.')
+        return args[0].sort
+
 
 class Sub(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(- arg1 arg2)')
 
+    def osort(self, *args):
+        if len(args) == 0:
+            raise ValueError(self.__class__name +
+                             '\'s output sort is parameterized by its arguments. ' +
+                             'Need an argument to determine output sort.')
+        return args[0].sort
+
 
 class Plus(FunctionBase):
-    arity = 2  # or does smt lib allow for arbitrary number of arguments?
+    arity = {'min': 2,
+             'max': inf}
 
     def __init__(self):
         super().__init__(self.arity, '(+ arg1 arg2)')
 
+    def osort(self, *args):
+        if len(args) == 0:
+            raise ValueError(self.__class__name +
+                             '\'s output sort is parameterized by its arguments. ' +
+                             'Need an argument to determine output sort.')
+        return args[0].sort
+
 
 class LT(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(< arg1 arg2)')
 
+    def osort(self, *args):
+        return sorts.Bool()
+
 
 class LEQ(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(<= arg1 arg2)')
 
+    def osort(self, *args):
+        return sorts.Bool()
+
 
 class GT(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(> arg1 arg2)')
 
+    def osort(self, *args):
+        return sorts.Bool()
+
 
 class GEQ(FunctionBase):
-    arity = 2
+    arity = {'min': 2,
+             'max': 2}
 
     def __init__(self):
         super().__init__(self.arity, '(>= arg1 arg2)')
+
+    def osort(self, *args):
+        return sorts.Bool()
 
 
 def declare_fun(identifier, *args):

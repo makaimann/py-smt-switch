@@ -5,6 +5,7 @@ import sorts
 import functions
 import terms
 from fractions import Fraction
+import config
 
 
 class SolverBase(metaclass=ABCMeta):
@@ -116,23 +117,37 @@ class Z3Solver(SolverBase):
     def declare_const(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
-        const = terms.Z3Term(self, None, z3const, [])
+        const = terms.Z3Term(self, functions.No_op, z3const, sort, [])
         return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
-        tconst = terms.Z3Term(self, None, z3tconst, [])
+        tconst = terms.Z3Term(self, functions.No_op, z3tconst, sort, [])
         return tconst
 
-    def apply_fun(self, fun, *args):
-        solver_args = list(map(lambda arg:
-                               arg.solver_term if isinstance(arg, terms.Z3Term)
-                               else arg, args))
-        z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
-        expr = terms.Z3Term(self, fun, z3expr, list(args))
-        return expr
+    if config.strict:
+        # if config strict, check arity of function
+        def apply_fun(self, fun, *args):
+            if len(args) >= fun.arity['min'] and len(args) <= fun.arity['max']:
+                solver_args = list(map(lambda arg:
+                                       arg.solver_term if isinstance(arg, terms.Z3Term)
+                                       else arg, args))
+                z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
+                expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
+                return expr
+            else:
+                raise ValueError('In strict mode you must respect function arity:' +
+                                 ' {}: arity = {}'.format(fun, fun.arity))
+    else:
+        def apply_fun(self, fun, *args):
+            solver_args = list(map(lambda arg:
+                                   arg.solver_term if isinstance(arg, terms.Z3Term)
+                                   else arg, args))
+            z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
+            expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
+            return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
@@ -143,7 +158,7 @@ class Z3Solver(SolverBase):
                                      'Received sort: {}'.format(constraint.sort))
                 self._solver.add(constraints)
         else:
-            if constraints.sort != 'Bool':
+            if constraints.sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
                                  'Received sort: {}'.format(constraints.sort))
             self._solver.add(constraints.solver_term)
@@ -164,7 +179,7 @@ class Z3Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._solver.model().eval(var.solver_term).sexpr()
+            return self._solver.model().eval(var.solver_term).__repr__()
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
@@ -174,12 +189,15 @@ class Z3Solver(SolverBase):
 class CVC4Solver(SolverBase):
     # could also use class name instead of class itself as key
     # probably better for memory reasons?
-    def __init__(self):
+    def __init__(self, lang='SMTLIB_V2_5'):
         super().__init__()
         # set output language to smt2.5
-        opts = CVC4.Options()
-        opts.setOutputLanguage(CVC4.OUTPUT_LANG_SMTLIB_V2_5)
-        self._em = CVC4.ExprManager(opts)
+        if lang != 'auto':
+            opts = CVC4.Options()
+            opts.setOutputLanguage(eval('CVC4.OUTPUT_LANG_{}'.format(lang)))
+            self._em = CVC4.ExprManager(opts)
+        else:
+            self._em = CVC4.ExprManager()
         self._smt = CVC4.SmtEngine(self._em)
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
@@ -242,38 +260,58 @@ class CVC4Solver(SolverBase):
     def declare_const(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = terms.CVC4Term(self, None, cvc4const, [])
+        const = terms.CVC4Term(self, functions.No_op, cvc4const, sort, [])
         return const
 
     def theory_const(self, sort, value):
         cvc4tconst = self._CVC4Consts[sort.__class__](*sort.params, value)
-        tconst = terms.CVC4Term(self, None, cvc4tconst, [])
+        tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, sort, [])
         return tconst
 
-    def apply_fun(self, fun, *args):
-        cvc4fun = self._CVC4Funs[fun.__class__]
-        # check if just indexer or needs to be evaluated
-        if isinstance(args[0], list):
-            args = args[0]
+    if config.strict:
+        # if config strict, check arity and don't allow python objects as arguments
+        def apply_fun(self, fun, *args):
+            if len(args) >= fun.arity['min'] and len(args) <= fun.arity['max']:
+                cvc4fun = self._CVC4Funs[fun.__class__]
+                # handle list argument
+                if isinstance(args[0], list):
+                    args = args[0]
 
-        # handle zero and one argument cases for and
-        #if fun.arity >= 2:
-        #    if len(args) == 0:
-        #        return terms.CVC4Term(self, None, self._em.mkBoolConst(True), [])
-        #    elif len(args) == 1:
-        #        return args[0]
+                solver_args = [arg.solver_term for arg in args]
 
-        solver_args = list(map(lambda arg: arg.solver_term
-                               if isinstance(arg, terms.CVC4Term)
-                               else
-                               self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
-                               args))
-        
-        if not isinstance(cvc4fun, int):
-            cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-        cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-        expr = terms.CVC4Term(self, fun, cvc4terms, list(args))
-        return expr
+                # check if just indexer or needs to be evaluated
+                if not isinstance(cvc4fun, int):
+                    cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
+                cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
+                expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
+                return expr
+            else:
+                raise ValueError('In strict mode you must respect function arity:' +
+                                 ' {}: arity = {}'.format(fun, fun.arity))
+    else:
+        def apply_fun(self, fun, *args):
+            cvc4fun = self._CVC4Funs[fun.__class__]
+            # handle list argument
+            if isinstance(args[0], list):
+                args = args[0]
+
+            solver_args = list(map(lambda arg: arg.solver_term
+                                   if isinstance(arg, terms.CVC4Term)
+                                   else
+                                   self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
+                                   args))
+
+            # handle (and arg1) and (or arg1)
+            if len(args) < fun.arity['min']:
+                # since strict = False, the function itself knows how to handle
+                # nonstandard arguments
+                return fun(*args)
+            # check if just indexer or needs to be evaluated
+            if not isinstance(cvc4fun, int):
+                cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
+            cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
+            expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
+            return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
@@ -283,7 +321,7 @@ class CVC4Solver(SolverBase):
                                      'Received sort: {}'.format(constraint.sort))
                 self._smt.assertFormula(constraint.solver_term)
         else:
-            if constraints.sort != 'Bool':
+            if constraints.sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
                                  'Received sort: {}'.format(constraints.sort))
             self._smt.assertFormula(constraints.solver_term)
