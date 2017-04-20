@@ -177,19 +177,33 @@ class Z3Solver(SolverBase):
         else:
             raise RuntimeError('Solver has not been run')
 
-    def get_value(self, var):
-        if self.sat:
-            return self._solver.model().eval(var.solver_term).__repr__()
-        elif self.sat is not None:
-            raise RuntimeError('Problem is unsat')
-        else:
-            raise RuntimeError('Solver has not been run')
+    if config.strict:
+        def get_value(self, var):
+            if self.sat:
+                return self._solver.model().eval(var.solver_term).sexpr()
+            elif self.sat is not None:
+                raise RuntimeError('Problem is unsat')
+            else:
+                raise RuntimeError('Solver has not been run')
+    else:
+        def get_value(self, var):
+            if self.sat:
+                return self._solver.model().eval(var.solver_term).__repr__()
+            elif self.sat is not None:
+                raise RuntimeError('Problem is unsat')
+            else:
+                raise RuntimeError('Solver has not been run')
 
 
 class CVC4Solver(SolverBase):
     # could also use class name instead of class itself as key
     # probably better for memory reasons?
-    def __init__(self, lang='SMTLIB_V2_5'):
+    if config.strict:
+        default_lang = 'SMTLIB_V2_5'
+    else:
+        default_lang = 'auto'
+
+    def __init__(self, lang=default_lang):
         super().__init__()
         # set output language to smt2.5
         if lang != 'auto':
@@ -346,3 +360,9 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
+
+
+# dictionary of solvers
+# useful for running with multiple solvers
+solvers = {'Z3': Z3Solver,
+           'CVC4': CVC4Solver}

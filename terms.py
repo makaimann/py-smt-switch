@@ -1,5 +1,6 @@
 from abc import ABCMeta
 import functions
+import config
 
 
 class TermBase(metaclass=ABCMeta):
@@ -38,36 +39,35 @@ class TermBase(metaclass=ABCMeta):
     def solver_term(self):
         return self._solver_term
 
-    # Overloaded operators
-    def __eq__(self, other):
-        return self._solver.apply_fun(functions.Equals(), self, other)
+    if not config.strict:
+        # Overloaded operators
+        def __eq__(self, other):
+            return self._solver.apply_fun(functions.Equals(), self, other)
 
-    def __ne__(self, other):
-        return self._solver.apply_fun(functions.Not(), self == other)
+        def __ne__(self, other):
+            return self._solver.apply_fun(functions.Not(), self == other)
 
-    def __add__(self, other):
-        return self._solver.apply_fun(functions.Plus(), self, other)
+        def __add__(self, other):
+            return self._solver.apply_fun(functions.Plus(), self, other)
 
-    def __sub__(self, other):
-        return self._solver.apply_fun(functions.Sub(), self, other)
+        def __sub__(self, other):
+            return self._solver.apply_fun(functions.Sub(), self, other)
 
-    def __neg__(self):
-        # unfortunately not a very robust way of inferring the sort
-        # will be better when sorts are translated
-        zero = self._solver.theory_const(self.sort, 0)
-        return self._solver.apply_fun(functions.Sub(), zero, self)
+        def __neg__(self):
+            zero = self._solver.theory_const(self.sort, 0)
+            return self._solver.apply_fun(functions.Sub(), zero, self)
 
-    def __lt__(self, other):
-        return self._solver.apply_fun(functions.LT(), self, other)
+        def __lt__(self, other):
+            return self._solver.apply_fun(functions.LT(), self, other)
 
-    def __le__(self, other):
-        return self._solver.apply_fun(functions.LEQ(), self, other)
+        def __le__(self, other):
+            return self._solver.apply_fun(functions.LEQ(), self, other)
 
-    def __gt__(self, other):
-        return self._solver.apply_fun(functions.GT(), self, other)
+        def __gt__(self, other):
+            return self._solver.apply_fun(functions.GT(), self, other)
 
-    def __ge__(self, other):
-        return self._solver.apply_fun(functions.GEQ(), self, other)
+        def __ge__(self, other):
+            return self._solver.apply_fun(functions.GEQ(), self, other)
 
 
 class CVC4Term(TermBase):
@@ -82,5 +82,9 @@ class Z3Term(TermBase):
     def __init__(self, solver, op, solver_term, sort, children):
         super().__init__(solver, op, solver_term, sort, children)
 
-    def __repr__(self):
-        return self.solver_term.sexpr()
+    if config.strict:
+        def __repr__(self):
+            return self.solver_term.sexpr()
+    else:
+        def __repr__(self):
+            return self.solver_term.__repr__()

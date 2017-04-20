@@ -2,6 +2,7 @@ from abc import ABCMeta, abstractmethod
 from math import inf
 import inspect
 import sorts
+import terms
 import config
 
 
@@ -20,6 +21,11 @@ class FunctionBase(metaclass=ABCMeta):
 
     @property
     def params(self):
+        '''
+            Holds the parameters needed to apply the function.
+            Ex// (_ extract 12 6)
+            Functions with nontrivial params overload this property
+        '''
         return ()
 
     @abstractmethod
@@ -32,7 +38,10 @@ class FunctionBase(metaclass=ABCMeta):
             args = args[0]
 
         if args:
-            return args[0].solver.apply_fun(self, *args)
+            s_terms = list(filter(lambda arg: issubclass(arg.__class__, terms.TermBase), args))
+            if not s_terms:
+                raise ValueError('There needs to be at least one argument of type [Solver Name]Term')
+            return s_terms[0].solver.apply_fun(self, *args)
         else:
             if config.strict:
                 raise ValueError('In strict mode, you must respect function arity: ' +
@@ -43,6 +52,12 @@ class FunctionBase(metaclass=ABCMeta):
 
     def __repr__(self):
         return self.__class__.__name__
+
+    def __eq__(self, other):
+        '''
+           Functions are defined by name and params only
+        '''
+        return self.__class__ == other.__class__ and self.params == other.params
 
 
 class No_op(FunctionBase):
@@ -62,8 +77,8 @@ class No_op(FunctionBase):
 
 
 class extract(FunctionBase):
-    arity = {'min': 0,
-             'max': 0}
+    arity = {'min': 1,
+             'max': 1}
 
     def __init__(self, ub, lb):
         super().__init__(self.arity, '(extract BitVec)')
@@ -170,11 +185,22 @@ class Ite(FunctionBase):
         super().__init__(self.arity, '(ite cond arg1 arg2)')
 
     def osort(self, *args):
-        if len(args) == 0:
+        if len(args) != 3:
             raise ValueError(self.__class__name +
                              '\'s output sort is parameterized by its arguments. ' +
-                             'Need an argument to determine output sort.')
-        return args[0].sort
+                             'Need all three inputs to determine output sort.')
+        arg_sorts = list(map(lambda arg:
+                             arg.sort if issubclass(arg.__class__, terms.TermBase)
+                             else sorts.py2sort[type(arg)]() if type(arg) in sorts.py2sort
+                             else None, args))
+        # TODO: check for consistent output sort
+        if arg_sorts[1] is not None and arg_sorts[2] is not None and arg_sorts[1] != arg_sorts[2]:
+            raise ValueError('Ite needs to have a consistent output sort. ' +
+                             'Received {} and {}'.format(args[1].sort, args[2].sort))
+        ite_sorts = list(filter(lambda arg: arg is not None, arg_sorts[1:]))
+        if not ite_sorts:
+            raise ValueError('Can\'t determine output sort based on inputs {} and {}'.format(args[1], args[2]))
+        return ite_sorts[0]
 
 
 class Sub(FunctionBase):
