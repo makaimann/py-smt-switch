@@ -86,7 +86,17 @@ class Z3Solver(SolverBase):
                functions.LT: lambda arg1, arg2: arg1 < arg2,
                functions.LEQ: lambda arg1, arg2: arg1 <= arg2,
                functions.GT: lambda arg1, arg2: arg1 > arg2,
-               functions.GEQ: lambda arg1, arg2: arg1 >= arg2}
+               functions.GEQ: lambda arg1, arg2: arg1 >= arg2,
+               functions.bvand: lambda arg1, arg2: arg1 & arg2,
+               functions.bvor: lambda arg1, arg2: arg1 | arg2,
+               functions.bvadd: lambda arg1, arg2: arg1 + arg2,
+               functions.bvmul: lambda arg1, arg2: arg1*arg2,
+               functions.bvudiv: z3.UDiv,
+               functions.bvurem: z3.URem,
+               functions.bvshl: lambda arg1, arg2: arg1 << arg2,
+               functions.bvlshr: z3.LShR,
+               functions.bvnot: lambda arg: ~arg,
+               functions.bvneg: lambda arg: -arg}
     _z3Consts = {sorts.BitVec: z3.BitVecVal,
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal}
@@ -188,7 +198,10 @@ class Z3Solver(SolverBase):
     else:
         def get_value(self, var):
             if self.sat:
-                return self._solver.model().eval(var.solver_term).__repr__()
+                if config.strict:
+                    return self._solver.model().eval(var.solver_term).sexpr()
+                else:
+                    return self._solver.model().eval(var.solver_term).__repr__()
             elif self.sat is not None:
                 raise RuntimeError('Problem is unsat')
             else:
@@ -228,7 +241,17 @@ class CVC4Solver(SolverBase):
                           functions.LT: CVC4.LT,
                           functions.LEQ: CVC4.LEQ,
                           functions.GT: CVC4.GT,
-                          functions.GEQ: CVC4.GEQ}
+                          functions.GEQ: CVC4.GEQ,
+                          functions.bvand: CVC4.BITVECTOR_AND,
+                          functions.bvor: CVC4.BITVECTOR_OR,
+                          functions.bvadd: CVC4.BITVECTOR_PLUS,
+                          functions.bvmul: CVC4.BITVECTOR_MULT,
+                          functions.bvudiv: CVC4.BITVECTOR_UDIV,
+                          functions.bvurem: CVC4.BITVECTOR_UREM,
+                          functions.bvshl: CVC4.BITVECTOR_SHL,
+                          functions.bvlshr: CVC4.BITVECTOR_LSHR,
+                          functions.bvnot: CVC4.BITVECTOR_NOT,
+                          functions.bvneg: CVC4.BITVECTOR_NEG}
 
         # Theory constant functions
         def create_bv(width, value):
