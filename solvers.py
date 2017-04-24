@@ -297,10 +297,13 @@ class CVC4Solver(SolverBase):
         if config.strict:
             solver_args = [arg.solver_term for arg in args]
         else:
+            # find a cvc4 term to infer the sort
+            # TODO: make this more robust
+            cvc4term = list(filter(lambda x: isinstance(x, terms.CVC4Term), args))[-1]
             solver_args = list(map(lambda arg: arg.solver_term
                                if isinstance(arg, terms.CVC4Term)
                                else
-                               self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
+                               self.theory_const(cvc4term.sort, arg).solver_term,
                                args))
 
         # check if just indexer or needs to be evaluated
