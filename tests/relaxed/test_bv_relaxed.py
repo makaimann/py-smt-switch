@@ -1,8 +1,5 @@
 import pytest
 import config
-# set the strict variable before importing other modules
-config.strict = False
-
 import sorts
 import functions
 import solvers
@@ -23,6 +20,8 @@ def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
     '''
+
+    config.strict = False
 
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
@@ -57,3 +56,6 @@ def test_bv_extract():
         s.check_sat()
 
         assert s.sat  # in fact it's actually valid
+
+if __name__ == "__main__":
+    test_bv_extract()

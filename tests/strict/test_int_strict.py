@@ -1,8 +1,5 @@
 import pytest
 import config
-# set the strict variable before importing other modules
-config.strict = True
-
 import solvers
 import sorts
 import functions
@@ -30,6 +27,9 @@ def test_lia():
               i3 < 2                5
        Expect UNSAT
     '''
+    # set the strict variable before importing other modules
+    config.strict = True
+    
     for name, solver in solvers.solvers.items():  # iterate through the solvers
         s = solver()
         s.set_logic('QF_LIA')
@@ -84,6 +84,7 @@ def test_ite():
               x2 < 0
        Expect UNSAT
     '''
+    config.strict = True
 
     for name, solver in solvers.solvers.items():
         s = solver()

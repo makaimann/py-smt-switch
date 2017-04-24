@@ -1,8 +1,5 @@
 import pytest
 import config
-# set the strict variable before importing other modules
-config.strict = True
-
 import sorts
 import functions
 import solvers
@@ -23,7 +20,8 @@ def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
     '''
-
+    config.strict = True
+    
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
 
@@ -74,6 +72,8 @@ def test_bv_boolops():
            bv2 or bv3
            not bv3
     '''
+    config.strict = True
+    
     bvand = functions.bvand()
     bvor = functions.bvor()
     bvnot = functions.bvnot()
@@ -132,7 +132,79 @@ def test_bv_boolops():
         bvnr = s.get_value(bvnotresult)
 
         # make assertions about values
-        # note: still haven't figure out how to print smt-lib looking results with z3
+        # haven't figured out how to print smt-lib format from z3 results yet...
         assert bvr1 == '(_ bv0 8)' or bvr1 == '#x00'
         assert bvr2 == '(_ bv245 8)' or bvr2 == '#xf5'
         assert bvnr == '(_ bv170 8)' or bvnr == '#xaa'
+
+
+def test_bv_arithops():
+    '''
+       Set 
+          bv1 = 0001
+          bv2 = 0010
+          bv3 = 0101
+       Then compute:
+          bv1 + bv2
+          bv2*bv3
+          bv3 >> 1
+    '''
+    
+    bvadd = functions.bvadd()
+    bvmul = functions.bvmul()
+    bvlshr = functions.bvlshr()
+
+    bvsort = sorts.BitVec(4)
+
+    for name, solver in solvers.solvers.items():
+        s = solver()
+        s.set_logic('QF_BV')
+        s.set_option('produce-models', 'true')
+        
+        bv1 = s.declare_const('bv1', bvsort)
+        bv2 = s.declare_const('bv2', bvsort)
+        bv3 = s.declare_const('bv3', bvsort)
+
+        one = s.theory_const(bvsort, 1)
+        two = s.theory_const(bvsort, 2)
+        five = s.theory_const(bvsort, 5)
+
+        bv1eq = s.apply_fun(Equals, bv1, one)
+        bv2eq = s.apply_fun(Equals, bv2, two)
+        bv3eq = s.apply_fun(Equals, bv3, five)
+
+        bvsum = s.declare_const('bvsum', bvsort)
+        bvprod = s.declare_const('bvprod', bvsort)
+        bvshifted = s.declare_const('bvshifted', bvsort)
+
+        bvsumval = s.apply_fun(bvadd, bv1, bv2)
+        bvprodval = s.apply_fun(bvmul, bv2, bv3)
+        bvshiftedval = s.apply_fun(bvlshr, bv3, one)
+
+        bvsumeq = s.apply_fun(Equals, bvsum, bvsumval)
+        bvprodeq = s.apply_fun(Equals, bvprod, bvprodval)
+        bvshiftedeq = s.apply_fun(Equals, bvshifted, bvshiftedval)
+
+        #make assertions
+        s.Assert(bv1eq)
+        s.Assert(bv2eq)
+        s.Assert(bv3eq)
+        s.Assert(bvsumeq)
+        s.Assert(bvprodeq)
+        s.Assert(bvshiftedeq)
+
+        # check satisfiability
+        s.check_sat()
+
+        bvsumr = s.get_value(bvsum)
+        bvprodr = s.get_value(bvprod)
+        bvshiftedr = s.get_value(bvshifted)
+
+        # haven't figured out how to print smt-lib format from z3 results yet...
+        assert bvsumr == '(_ bv3 4)' or bvsumr == '#x3'
+        assert bvprodr == '(_ bv10 4)' or bvprodr == '#xa'
+        assert bvshiftedr == '(_ bv2 4)' or bvshiftedr == '#x2'
+
+if __name__ == "__main__":
+    test_bv_extract()
+    test_bv_boolops()

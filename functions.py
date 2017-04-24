@@ -35,6 +35,9 @@ class FunctionBase(metaclass=ABCMeta):
         pass
 
     def __call__(self, *args):
+        if config.strict:
+            raise ValueError('Functions are not callable in strict mode.' +
+                            ' Use solver.apply_fun(fun, *args)')
         # handle list argument
         if args and isinstance(args[0], list):
             args = args[0]
@@ -45,12 +48,8 @@ class FunctionBase(metaclass=ABCMeta):
                 raise ValueError('There needs to be at least one argument of type [Solver Name]Term')
             return s_terms[0].solver.apply_fun(self, *args)
         else:
-            if config.strict:
-                raise ValueError('In strict mode, you must respect function arity: ' +
-                                 '{}: arity = {}'.format(self.__class__.__name__, self.arity))
-            else:
-                raise ValueError('Incorrect number of arguments for' +
-                                 'function: {}'.format(self.__class__.__name__))
+            raise ValueError('Incorrect number of arguments for' +
+                             'function: {}'.format(self.__class__.__name__))
 
     def __repr__(self):
         return self.__class__.__name__
@@ -111,18 +110,21 @@ class And(FunctionBase):
         return sorts.Bool()
 
     # Overloading callable FunctionBase
-    if not config.strict:
-        def __call__(self, *args):
-            if args and isinstance(args[0], list):
-                args = args[0]
+    def __call__(self, *args):
+        if config.strict:
+            raise ValueError('Functions are not callable in strict mode. ' +
+                             'Use solver.apply_fun(fun, *args)')
 
-            # With strict=False, (and arg1) --> arg1, (and ) --> True
-            if len(args) > 1:
-                return args[0].solver.apply_fun(self, *args)
-            elif len(args) == 1:
-                return args[0]
-            else:
-                return True
+        if args and isinstance(args[0], list):
+            args = args[0]
+
+        # With strict=False, (and arg1) --> arg1, (and ) --> True
+        if len(args) > 1:
+            return args[0].solver.apply_fun(self, *args)
+        elif len(args) == 1:
+            return args[0]
+        else:
+            return True
 
 
 class Or(FunctionBase):
@@ -136,18 +138,20 @@ class Or(FunctionBase):
         return sorts.Bool()
 
     # Overloading callable FunctionBase
-    if not config.strict:
-        def __call__(self, *args):
-            if args and isinstance(args[0], list):
-                args = args[0]
+    def __call__(self, *args):
+        if config.strict:
+            raise ValueError('Functions are not callable in strict mode. ' +
+                             'Use solver.apply_fun(fun, *args)')
+        if args and isinstance(args[0], list):
+            args = args[0]
 
-            # With strict=False, (and arg1) --> arg1, (and ) --> True
-            if len(args) > 1:
-                return args[0].solver.apply_fun(self, *args)
-            elif len(args) == 1:
-                return args[0]
-            else:
-                return False
+        # With strict=False, (and arg1) --> arg1, (and ) --> True
+        if len(args) > 1:
+            return args[0].solver.apply_fun(self, *args)
+        elif len(args) == 1:
+            return args[0]
+        else:
+            return False
 
 
 class Ite(FunctionBase):

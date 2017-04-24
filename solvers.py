@@ -137,27 +137,18 @@ class Z3Solver(SolverBase):
         tconst = terms.Z3Term(self, functions.No_op, z3tconst, sort, [])
         return tconst
 
-    if config.strict:
-        # if config strict, check arity of function
-        def apply_fun(self, fun, *args):
-            if len(args) >= fun.arity['min'] and len(args) <= fun.arity['max']:
-                solver_args = list(map(lambda arg:
-                                       arg.solver_term if isinstance(arg, terms.Z3Term)
-                                       else arg, args))
-                z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
-                expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
-                return expr
-            else:
-                raise ValueError('In strict mode you must respect function arity:' +
-                                 ' {}: arity = {}'.format(fun, fun.arity))
-    else:
-        def apply_fun(self, fun, *args):
-            solver_args = list(map(lambda arg:
-                                   arg.solver_term if isinstance(arg, terms.Z3Term)
-                                   else arg, args))
-            z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
-            expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
-            return expr
+    # if config strict, check arity of function
+    def apply_fun(self, fun, *args):
+        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+            raise ValueError('In strict mode you must respect function arity:' +
+                             ' {}: arity = {}'.format(fun, fun.arity))
+
+        solver_args = list(map(lambda arg:
+                               arg.solver_term if isinstance(arg, terms.Z3Term)
+                               else arg, args))
+        z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
+        expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
+        return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
@@ -187,41 +178,28 @@ class Z3Solver(SolverBase):
         else:
             raise RuntimeError('Solver has not been run')
 
-    if config.strict:
-        def get_value(self, var):
-            if self.sat:
+    def get_value(self, var):
+        if self.sat:
+            if config.strict:
                 return self._solver.model().eval(var.solver_term).sexpr()
-            elif self.sat is not None:
-                raise RuntimeError('Problem is unsat')
             else:
-                raise RuntimeError('Solver has not been run')
-    else:
-        def get_value(self, var):
-            if self.sat:
-                if config.strict:
-                    return self._solver.model().eval(var.solver_term).sexpr()
-                else:
-                    return self._solver.model().eval(var.solver_term).__repr__()
-            elif self.sat is not None:
-                raise RuntimeError('Problem is unsat')
-            else:
-                raise RuntimeError('Solver has not been run')
+                return self._solver.model().eval(var.solver_term).__repr__()
+        elif self.sat is not None:
+            raise RuntimeError('Problem is unsat')
+        else:
+            raise RuntimeError('Solver has not been run')
 
 
 class CVC4Solver(SolverBase):
     # could also use class name instead of class itself as key
     # probably better for memory reasons?
-    if config.strict:
-        default_lang = 'SMTLIB_V2_5'
-    else:
-        default_lang = 'auto'
 
-    def __init__(self, lang=default_lang):
+    def __init__(self, lang='auto'):
         super().__init__()
         # set output language to smt2.5
-        if lang != 'auto':
+        if config.strict:
             opts = CVC4.Options()
-            opts.setOutputLanguage(eval('CVC4.OUTPUT_LANG_{}'.format(lang)))
+            opts.setOutputLanguage(eval('CVC4.OUTPUT_LANG_SMTLIB_V2_5'))
             self._em = CVC4.ExprManager(opts)
         else:
             self._em = CVC4.ExprManager()
@@ -305,50 +283,32 @@ class CVC4Solver(SolverBase):
         tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, sort, [])
         return tconst
 
-    if config.strict:
-        # if config strict, check arity and don't allow python objects as arguments
-        def apply_fun(self, fun, *args):
-            if len(args) >= fun.arity['min'] and len(args) <= fun.arity['max']:
-                cvc4fun = self._CVC4Funs[fun.__class__]
-                # handle list argument
-                if isinstance(args[0], list):
-                    args = args[0]
+    # if config strict, check arity and don't allow python objects as arguments
+    def apply_fun(self, fun, *args):
+        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+            raise ValueError('In strict mode you must respect function arity:' +
+                             ' {}: arity = {}'.format(fun, fun.arity))
 
-                solver_args = [arg.solver_term for arg in args]
+        cvc4fun = self._CVC4Funs[fun.__class__]
+        # handle list argument
+        if isinstance(args[0], list):
+            args = args[0]
 
-                # check if just indexer or needs to be evaluated
-                if not isinstance(cvc4fun, int):
-                    cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-                cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-                expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
-                return expr
-            else:
-                raise ValueError('In strict mode you must respect function arity:' +
-                                 ' {}: arity = {}'.format(fun, fun.arity))
-    else:
-        def apply_fun(self, fun, *args):
-            cvc4fun = self._CVC4Funs[fun.__class__]
-            # handle list argument
-            if isinstance(args[0], list):
-                args = args[0]
-
+        if config.strict:
+            solver_args = [arg.solver_term for arg in args]
+        else:
             solver_args = list(map(lambda arg: arg.solver_term
-                                   if isinstance(arg, terms.CVC4Term)
-                                   else
-                                   self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
-                                   args))
+                               if isinstance(arg, terms.CVC4Term)
+                               else
+                               self.theory_const(sorts.py2sort[type(arg)](), arg).solver_term,
+                               args))
 
-            # handle (and arg1) and (or arg1)
-            if len(args) < fun.arity['min']:
-                # since strict = False, the function itself knows how to handle
-                # nonstandard arguments
-                return fun(*args)
-            # check if just indexer or needs to be evaluated
-            if not isinstance(cvc4fun, int):
-                cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
-            cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-            expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
-            return expr
+        # check if just indexer or needs to be evaluated
+        if not isinstance(cvc4fun, int):
+            cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
+        cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
+        expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
+        return expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
