@@ -1,8 +1,8 @@
 import pytest
-from config import config
-from src import sorts
-from src import functions
-from src import solvers
+from smt_switch.config import config
+from smt_switch import sorts
+from smt_switch import functions
+from smt_switch import solvers
 
 
 And = functions.And()

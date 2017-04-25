@@ -1,6 +1,6 @@
 from abc import ABCMeta
-from src import functions
-from config import config
+from smt_switch.src import functions
+from smt_switch.config import config
 
 
 class TermBase(metaclass=ABCMeta):

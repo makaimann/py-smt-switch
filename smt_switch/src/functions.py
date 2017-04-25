@@ -5,7 +5,7 @@ import inspect
 from . import sorts
 from . import terms
 from . import smtutils
-from config import config
+from smt_switch.config import config
 
 
 class FunctionBase(metaclass=ABCMeta):

@@ -1,9 +1,9 @@
 import pytest
-from config import config
-from src import solvers
-from src import sorts
-from src import functions
-from src import terms  # used in eval
+from smt_switch.config import config
+from smt_switch import solvers
+from smt_switch import sorts
+from smt_switch import functions
+from smt_switch import terms  # used in eval
 
 And = functions.And()
 Or = functions.Or()
@@ -27,8 +27,8 @@ def test_lia():
               i3 < 2                5
        Expect UNSAT
     '''
-    # set the strict variable before importing other modules
-    config.strict = True
+
+    config.strict = False
     
     for name, solver in solvers.solvers.items():  # iterate through the solvers
         s = solver()
@@ -39,24 +39,18 @@ def test_lia():
         i3 = s.declare_const('i3', isort)
         assert isinstance(i1, eval('terms.{}Term'.format(name)))
 
-        i1plusi2 = s.apply_fun(Plus, i1, i2)
-        i3minusi2 = s.apply_fun(Sub, i3, i2)
+        i1plusi2 = i1 + i2
 
         assert i1 in i1plusi2.children
         assert i2 in i1plusi2.children
         assert i1plusi2.op == Plus
 
-        six = s.theory_const(isort, 6)
-        two = s.theory_const(isort, 2)
-        three = s.theory_const(isort, 3)
-        zero = s.theory_const(isort, 2)
+        # demonstrate interpreted python constants
+        formula1 = s.apply_fun(LEQ, i1plusi2, 6)
 
-        formula1 = s.apply_fun(LEQ, i1plusi2, six)
-        formula2 = s.apply_fun(GEQ, i3minusi2, two)
-        formula3 = s.apply_fun(Equals, i1, three)
-        formula4 = s.apply_fun(GT, i2, zero)
-        formula5 = s.apply_fun(LT, i3, two)
-
+        # demonstrate overloaded operators
+        formula2 = i3 - i2 >= 2
+    
         assert isinstance(formula1, eval('terms.{}Term'.format(name)))
         assert i1plusi2 in formula1.children
         assert formula1.op == LEQ
@@ -64,9 +58,11 @@ def test_lia():
 
         s.Assert(formula1)
         s.Assert(formula2)
-        s.Assert(formula3)
-        s.Assert(formula4)
-        s.Assert(formula5)
+
+        # demonstrate more overloaded operators
+        s.Assert(i1 == 3)
+        s.Assert(i2 > 0)
+        s.Assert(i3 < 2)
 
         # check satisfiability
         s.check_sat()
@@ -84,51 +80,42 @@ def test_ite():
               x2 < 0
        Expect UNSAT
     '''
-    config.strict = True
+
+    config.strict = False
 
     for name, solver in solvers.solvers.items():
         s = solver()
 
-        # demonstrating that you don't need to use sorts.construct_sort
-        isort = sorts.Int()
-
-        x1 = s.declare_const('x1', isort)
-        x2 = s.declare_const('x2', isort)
+        x1 = s.declare_const('x1', sorts.Int())
+        x2 = s.declare_const('x2', sorts.Int())
         assert x1.sort == sorts.Int()
-        
-        zero = s.theory_const(isort, 0)
-        assert isinstance(zero, eval('terms.{}Term'.format(name)))
 
-        x1pos = s.apply_fun(GT, x1, zero)
-        x2pos = s.apply_fun(GT, x2, zero)
+        x1pos = x1 > 0
         assert x1pos.op == GT
         assert x1pos.sort == sorts.Bool()
-        assert zero in x1pos.children
 
-        y1 = s.apply_fun(Ite, x1pos, x1, zero)
-        y2 = s.apply_fun(Ite, x2pos, x2, zero)
+        y1 = s.apply_fun(Ite, x1pos, x1, 0)
         assert isinstance(y1, eval('terms.{}Term'.format(name)))
+        
+        # demonstrate callable functions 
+        y2 = Ite(x2 > 0, x2, 0)
+        
         assert x1 in y1.children
         assert x1pos in y1.children
         assert y1.sort == sorts.Int()
 
-        y1plusy2 = s.apply_fun(Plus, y1, y2)
-
-        three = s.theory_const(isort, 3)
-        y1plusy2GEQ3 = s.apply_fun(GEQ, y1plusy2, three)
+        y1plusy2GEQ3 = y1 + y2 >= 3
         assert y1plusy2GEQ3.op == GEQ
+        three = s.theory_const(sorts.Int(), 3)
         assert three in y1plusy2GEQ3.children
+        assert y1plusy2GEQ3.sort == sorts.Bool()
 
-        two = s.theory_const(isort, 2)
-        y1leq2 = s.apply_fun(LEQ, y1, two)
-        assert y1leq2.sort == sorts.Bool()
-
-        x2neg = s.apply_fun(LT, x2, zero)
-        assert x2neg.__repr__() == '(< x2 0)' or x2neg.__repr__() == '(> 0 x2)'
+        x2neg = s.apply_fun(LT, x2, 0)
+        assert x2neg.__repr__() == 'x2 < 0' or x2neg.__repr__() == '0 > x2'
 
         # make assertions in solver
         s.Assert(y1plusy2GEQ3)
-        s.Assert(y1leq2)
+        s.Assert(y1 <= 2)
         s.Assert(x2neg)
 
         # check that sat is not assigned

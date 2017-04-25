@@ -1,11 +1,11 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 import CVC4
 import z3
-from src import sorts
-from src import functions
-from src import terms
+from . import sorts
+from . import functions
+from . import terms
 from fractions import Fraction
-from config import config
+from smt_switch.config import config
 
 
 class SolverBase(metaclass=ABCMeta):
