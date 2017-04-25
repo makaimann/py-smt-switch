@@ -1,8 +1,8 @@
 import pytest
-import config
-import sorts
-import functions
-import solvers
+from config import config
+from src import sorts
+from src import functions
+from src import solvers
 
 
 And = functions.And()
@@ -20,8 +20,9 @@ def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
     '''
-    config.strict = True
-    
+
+    config.strict = False
+
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
 
@@ -32,28 +33,24 @@ def test_bv_extract():
         x = s.declare_const('x', bvsort)
 
         ext_31_1 = functions.declare_fun(functions.extract, 31, 1)
-        x_31_1 = s.apply_fun(ext_31_1, x)
+        x_31_1 = ext_31_1(x)
 
         ext_30_0 = functions.declare_fun(functions.extract, 30, 0)
-        x_30_0 = s.apply_fun(ext_30_0, x)
+        x_30_0 = ext_30_0(x)
 
-        ext_31_31 = functions.declare_fun(functions.extract, 31, 31)
-        x_31_31 = s.apply_fun(ext_31_31, x)
+        x_31_31 = functions.extract(31, 31)(x)
 
-        ext_0_0 = functions.declare_fun(functions.extract, 0, 0)
-        x_0_0 = s.apply_fun(ext_0_0, x)
+        x_0_0 = functions.extract(0, 0)(x)
 
         assert x_31_1.sort == x_30_0.sort
         assert x_31_31.sort == x_0_0.sort
 
         assert x_31_31.op == functions.extract(31, 31)
 
-        eq = s.apply_fun(Equals, x_31_1, x_30_0)
+        print('Asserting', x_31_1 == x_30_0)
+        s.Assert(x_31_1 == x_30_0)
 
-        print('Asserting', eq)
-        s.Assert(eq)
-
-        eq2 = s.apply_fun(Equals, x_31_31, x_0_0)
+        eq2 = x_31_31 == x_0_0
         s.Assert(eq2)
 
         s.check_sat()
@@ -72,7 +69,7 @@ def test_bv_boolops():
            bv2 or bv3
            not bv3
     '''
-    config.strict = True
+    config.strict = False
     
     bvand = functions.bvand()
     bvor = functions.bvor()
@@ -89,40 +86,18 @@ def test_bv_boolops():
         bv2 = s.declare_const('bv2', bvsort)
         bv3 = s.declare_const('bv3', bvsort)
 
-        bvresult = s.declare_const('bvresult', bvsort)
-        bvresult2 = s.declare_const('bvresult2', bvsort)
-        bvnotresult = s.declare_const('bvnotresult', bvsort)
+        bvresult = bvand(bv1, bv2)
+        bvresult2 = bvor(bv2, bv3)
+        bvnotresult = bvnot(bv3)
 
-        bv1andbv2 = s.apply_fun(bvand, bv1, bv2)
-        bv2orbv3 = s.apply_fun(bvor, bv2, bv3)
-        notbv3 = s.apply_fun(bvnot, bv3)
-
-        assert bv2orbv3.sort == sorts.BitVec(8)
-        assert bv2orbv3.op == functions.bvor()
-
-        bvresulteq = s.apply_fun(Equals, bvresult, bv1andbv2)
-        bvresult2eq = s.apply_fun(Equals, bvresult2, bv2orbv3)
-
-        bvnotresulteq = s.apply_fun(Equals, bvnotresult, notbv3)
-
-        assert bvnotresulteq.sort == sorts.Bool()
-
-        fifteen = s.theory_const(bvsort, 15)
-        twoforty = s.theory_const(bvsort, 240)
-        eightyfive = s.theory_const(bvsort, 85)
-
-        bv1eq = s.apply_fun(Equals, bv1, fifteen)
-        bv2eq = s.apply_fun(Equals, bv2, twoforty)
-        bv3eq = s.apply_fun(Equals, bv3, eightyfive)
-
+        assert bvresult2.sort == sorts.BitVec(8)
+        assert bvresult2.op == functions.bvor()
+    
         # Assert formulas
-        s.Assert(bvresulteq)
-        s.Assert(bvresult2eq)
-        s.Assert(bvnotresulteq)
-        s.Assert(bv1eq)
-        s.Assert(bv2eq)
-        s.Assert(bv3eq)
-
+        s.Assert(bv1 == 15)
+        s.Assert(bv2 == 240)
+        s.Assert(bv3 == 85)
+        
         # check satisfiability
         s.check_sat()
 
@@ -133,9 +108,9 @@ def test_bv_boolops():
 
         # make assertions about values
         # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvr1 == '(_ bv0 8)' or bvr1 == '#x00'
-        assert bvr2 == '(_ bv245 8)' or bvr2 == '#xf5'
-        assert bvnr == '(_ bv170 8)' or bvnr == '#xaa'
+        assert bvr1 == '0' or bvr1 == '0bin00000000'
+        assert bvr2 == '245' or bvr2 == '0bin11110101'
+        assert bvnr == '170' or bvnr == '0bin10101010'
 
 
 def test_bv_arithops():
@@ -149,6 +124,7 @@ def test_bv_arithops():
           bv2*bv3
           bv3 >> 1
     '''
+    config.strict = False
     
     bvadd = functions.bvadd()
     bvmul = functions.bvmul()
@@ -169,29 +145,14 @@ def test_bv_arithops():
         two = s.theory_const(bvsort, 2)
         five = s.theory_const(bvsort, 5)
 
-        bv1eq = s.apply_fun(Equals, bv1, one)
-        bv2eq = s.apply_fun(Equals, bv2, two)
-        bv3eq = s.apply_fun(Equals, bv3, five)
-
-        bvsum = s.declare_const('bvsum', bvsort)
-        bvprod = s.declare_const('bvprod', bvsort)
-        bvshifted = s.declare_const('bvshifted', bvsort)
-
-        bvsumval = s.apply_fun(bvadd, bv1, bv2)
-        bvprodval = s.apply_fun(bvmul, bv2, bv3)
-        bvshiftedval = s.apply_fun(bvlshr, bv3, one)
-
-        bvsumeq = s.apply_fun(Equals, bvsum, bvsumval)
-        bvprodeq = s.apply_fun(Equals, bvprod, bvprodval)
-        bvshiftedeq = s.apply_fun(Equals, bvshifted, bvshiftedval)
+        bvsum = bvadd(bv1, bv2)
+        bvprod = bvmul(bv2, bv3)
+        bvshifted = bvlshr(bv3, 1)
 
         #make assertions
-        s.Assert(bv1eq)
-        s.Assert(bv2eq)
-        s.Assert(bv3eq)
-        s.Assert(bvsumeq)
-        s.Assert(bvprodeq)
-        s.Assert(bvshiftedeq)
+        s.Assert(bv1 == 1)
+        s.Assert(bv2 == 2)
+        s.Assert(bv3 == 5)
 
         # check satisfiability
         s.check_sat()
@@ -200,11 +161,11 @@ def test_bv_arithops():
         bvprodr = s.get_value(bvprod)
         bvshiftedr = s.get_value(bvshifted)
 
-        # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvsumr == '(_ bv3 4)' or bvsumr == '#x3'
-        assert bvprodr == '(_ bv10 4)' or bvprodr == '#xa'
-        assert bvshiftedr == '(_ bv2 4)' or bvshiftedr == '#x2'
+        assert bvsumr == '3' or bvsumr == '0bin0011'
+        assert bvprodr == '10' or bvprodr == '0bin1010'
+        assert bvshiftedr == '2' or bvshiftedr == '0bin0010'
 
 if __name__ == "__main__":
     test_bv_extract()
     test_bv_boolops()
+    test_bv_arithops()

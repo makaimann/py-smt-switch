@@ -1,5 +1,5 @@
-import terms
-import sorts
+from src import terms
+from src import sorts
 
 
 def sorts_list(consts):

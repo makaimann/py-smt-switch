@@ -1,6 +1,6 @@
 from abc import ABCMeta
-import functions
-import config
+from src import functions
+from config import config
 
 
 class TermBase(metaclass=ABCMeta):

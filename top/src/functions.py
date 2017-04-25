@@ -2,10 +2,10 @@ from abc import ABCMeta, abstractmethod
 from math import inf
 from functools import reduce
 import inspect
-import sorts
-import terms
-import smtutils
-import config
+from . import sorts
+from . import terms
+from . import smtutils
+from config import config
 
 
 class FunctionBase(metaclass=ABCMeta):

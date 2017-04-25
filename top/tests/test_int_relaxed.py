@@ -1,9 +1,9 @@
 import pytest
-import config
-import solvers
-import sorts
-import functions
-import terms  # used in eval
+from config import config
+from src import solvers
+from src import sorts
+from src import functions
+from src import terms  # used in eval
 
 And = functions.And()
 Or = functions.Or()

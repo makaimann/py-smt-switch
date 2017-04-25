@@ -1,7 +1,7 @@
 #!/usr/bin/python3
-import sorts
-import functions
-import solvers
+from src import sorts
+from src import functions
+from src import solvers
 
 # To change solvers, simply instantiate a different solver
 
