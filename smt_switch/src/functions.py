@@ -296,6 +296,16 @@ class extract(FunctionBase):
     def osort(self, *args):
         return sorts.BitVec(self.width)
 
+class concat(FunctionBase):
+    arity = {'min': 2,
+             'max': 2}
+
+    def __init__(self):
+        super().__init__(self.arity, '(concat BitVec)')
+
+    def osort(self, *args):
+        return sorts.BitVec(args[0].sort.width + args[1].sort.width)
+
 
 class _bvbinops(FunctionBase):
     '''
@@ -325,7 +335,17 @@ class bvor(_bvbinops):
         super().__init__()
 
 
+class bvxor(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
 class bvadd(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvsub(_bvbinops):
     def __init__(self):
         super().__init__()
 

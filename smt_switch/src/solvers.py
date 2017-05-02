@@ -4,6 +4,7 @@ import z3
 from . import sorts
 from . import functions
 from . import terms
+from . import results
 from fractions import Fraction
 from smt_switch.config import config
 
@@ -15,11 +16,12 @@ class SolverBase(metaclass=ABCMeta):
         self.sat = None
 
     def add(self, c):
-        self.constraints.append(c)
+        ''' Alias for Assert '''
+        self.Assert(c)
 
+    @abstractmethod
     def reset(self):
-        self.constraints = []
-        self.sat = None
+        pass
 
     @abstractmethod
     def check_sat(self):
@@ -76,6 +78,7 @@ class Z3Solver(SolverBase):
                 sorts.Real: z3.Real,
                 sorts.Bool: z3.Bool}
     _z3Funs = {functions.extract: z3.Extract,
+               functions.concat: z3.Concat,
                functions.Not: z3.Not,
                functions.Equals: lambda arg1, arg2: arg1 == arg2,
                functions.And: z3.And,
@@ -89,7 +92,9 @@ class Z3Solver(SolverBase):
                functions.GEQ: lambda arg1, arg2: arg1 >= arg2,
                functions.bvand: lambda arg1, arg2: arg1 & arg2,
                functions.bvor: lambda arg1, arg2: arg1 | arg2,
+               functions.bvxor: lambda arg1, arg2: arg1 ^ arg2,
                functions.bvadd: lambda arg1, arg2: arg1 + arg2,
+               functions.bvsub: lambda arg1, arg2: arg1 - arg2,
                functions.bvmul: lambda arg1, arg2: arg1*arg2,
                functions.bvudiv: z3.UDiv,
                functions.bvurem: z3.URem,
@@ -101,10 +106,14 @@ class Z3Solver(SolverBase):
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal}
     _z3Options = {'produce-models': 'model'}
+    _z3Results = {sorts.BitVec: results.Z3BitVecResult}
 
     def __init__(self):
         super().__init__()
         self._solver = z3.Solver()
+
+    def reset(self):
+        self._solver.reset()
 
     def check_sat(self):
         # rely on Assert for now
@@ -180,10 +189,7 @@ class Z3Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            if config.strict:
-                return self._solver.model().eval(var.solver_term).sexpr()
-            else:
-                return self._solver.model().eval(var.solver_term).__repr__()
+            return self._z3Results[var.sort.__class__](self._solver.model().eval(var.solver_term))
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
@@ -209,6 +215,7 @@ class CVC4Solver(SolverBase):
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
         self._CVC4Funs = {functions.extract: CVC4.BitVectorExtract,
+                          functions.concat: CVC4.BITVECTOR_CONCAT,
                           functions.Equals: CVC4.EQUAL,
                           functions.Not: CVC4.NOT,
                           functions.And: CVC4.AND,
@@ -222,7 +229,9 @@ class CVC4Solver(SolverBase):
                           functions.GEQ: CVC4.GEQ,
                           functions.bvand: CVC4.BITVECTOR_AND,
                           functions.bvor: CVC4.BITVECTOR_OR,
+                          functions.bvxor: CVC4.BITVECTOR_XOR,
                           functions.bvadd: CVC4.BITVECTOR_PLUS,
+                          functions.bvsub: CVC4.BITVECTOR_SUB,
                           functions.bvmul: CVC4.BITVECTOR_MULT,
                           functions.bvudiv: CVC4.BITVECTOR_UDIV,
                           functions.bvurem: CVC4.BITVECTOR_UREM,
@@ -230,6 +239,7 @@ class CVC4Solver(SolverBase):
                           functions.bvlshr: CVC4.BITVECTOR_LSHR,
                           functions.bvnot: CVC4.BITVECTOR_NOT,
                           functions.bvneg: CVC4.BITVECTOR_NEG}
+        self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -250,6 +260,9 @@ class CVC4Solver(SolverBase):
                             sorts.Int: create_int,
                             sorts.Real: create_real,
                             sorts.Bool: create_bool}
+
+    def reset(self):
+        self._smt.reset()
 
     def check_sat(self):
         # rely on Assert for now
@@ -341,7 +354,7 @@ class CVC4Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._smt.getValue(var.solver_term).toString()
+            return self._CVC4Results[var.sort.__class__](self._smt.getValue(var.solver_term))
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:

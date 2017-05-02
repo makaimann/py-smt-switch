@@ -1,5 +1,7 @@
 from abc import ABCMeta
 from smt_switch.src import functions
+from smt_switch.src import sorts
+from smt_switch.src import terms
 from smt_switch.config import config
 
 
@@ -63,14 +65,24 @@ class TermBase(metaclass=ABCMeta):
         return self._solver.apply_fun(functions.Not(), self == other)
 
     def __add__(self, other):
-        return self._solver.apply_fun(functions.Plus(), self, other)
+        if self.sort.__class__ == sorts.BitVec:
+            return self._solver.apply_fun(functions.bvadd(), self, other)
+        else:
+            return self._solver.apply_fun(functions.Plus(), self, other)
 
     def __sub__(self, other):
-        return self._solver.apply_fun(functions.Sub(), self, other)
+        # override for bitvectors
+        if self.sort.__class__ == sorts.BitVec:
+            return self._solver.apply_fun(functions.bvsub(), self, other)
+        else:
+            return self._solver.apply_fun(functions.Sub(), self, other)
 
     def __neg__(self):
-        zero = self._solver.theory_const(self.sort, 0)
-        return self._solver.apply_fun(functions.Sub(), zero, self)
+        if self.sort.__class__ == sorts.BitVec:
+            return self._solver.apply_fun(functions.bvneg(), self)
+        else:
+            zero = self._solver.theory_const(self.sort, 0)
+            return self._solver.apply_fun(functions.Sub(), zero, self)
 
     def __lt__(self, other):
         return self._solver.apply_fun(functions.LT(), self, other)
@@ -83,6 +95,27 @@ class TermBase(metaclass=ABCMeta):
 
     def __ge__(self, other):
         return self._solver.apply_fun(functions.GEQ(), self, other)
+
+    # bit operations
+    def __and__(self, other):
+        if not issubclass(other.__class__, terms.TermBase):
+            other = self._solver.theory_const(self.sort, other)
+        return self._solver.apply_fun(functions.bvand(), self, other)
+
+    def __or__(self, other):
+        if not issubclass(other.__class__, terms.TermBase):
+            other = self._solver.theory_const(self.sort, other)
+        return self._solver.apply_fun(functions.bvor(), self, other)
+
+    def __xor__(self, other):
+        if not issubclass(other.__class__, terms.TermBase):
+            other = self._solver.theory_const(self.sort, other)
+        return self._solver.apply_fun(functions.bvxor(), self, other)
+
+    def __lshift__(self, other):
+        if not issubclass(other.__class__, terms.TermBase):
+            other = self._solver.theory_const(self.sort, other)
+        return self._solver.apply_fun(functions.bvshl(), self, other)
 
 
 class CVC4Term(TermBase):
