@@ -106,7 +106,10 @@ class Z3Solver(SolverBase):
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal}
     _z3Options = {'produce-models': 'model'}
-    _z3Results = {sorts.BitVec: results.Z3BitVecResult}
+    _z3Results = {sorts.BitVec: results.Z3BitVecResult,
+                  sorts.Int: results.Z3IntResult,
+                  sorts.Real: results.Z3RealResult,
+                  sorts.Bool: results.Z3BoolResult}
 
     def __init__(self):
         super().__init__()
@@ -239,7 +242,10 @@ class CVC4Solver(SolverBase):
                           functions.bvlshr: CVC4.BITVECTOR_LSHR,
                           functions.bvnot: CVC4.BITVECTOR_NOT,
                           functions.bvneg: CVC4.BITVECTOR_NEG}
-        self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult}
+        self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult,
+                             sorts.Int: results.CVC4IntResult,
+                             sorts.Real: results.CVC4RealResult,
+                             sorts.Bool: results.CVC4BoolResult}
 
         # Theory constant functions
         def create_bv(width, value):
