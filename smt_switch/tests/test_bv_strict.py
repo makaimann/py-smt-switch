@@ -133,9 +133,9 @@ def test_bv_boolops():
 
         # make assertions about values
         # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvr1 == '(_ bv0 8)' or bvr1 == '#x00'
-        assert bvr2 == '(_ bv245 8)' or bvr2 == '#xf5'
-        assert bvnr == '(_ bv170 8)' or bvnr == '#xaa'
+        assert bvr1.__repr__() == '(_ bv0 8)' or bvr1.__repr__() == '#x00'
+        assert bvr2.__repr__() == '(_ bv245 8)' or bvr2.__repr__() == '#xf5'
+        assert bvnr.__repr__() == '(_ bv170 8)' or bvnr.__repr__() == '#xaa'
 
 
 def test_bv_arithops():
@@ -201,10 +201,11 @@ def test_bv_arithops():
         bvshiftedr = s.get_value(bvshifted)
 
         # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvsumr == '(_ bv3 4)' or bvsumr == '#x3'
-        assert bvprodr == '(_ bv10 4)' or bvprodr == '#xa'
-        assert bvshiftedr == '(_ bv2 4)' or bvshiftedr == '#x2'
+        assert bvsumr.__repr__() == '(_ bv3 4)' or bvsumr.__repr__() == '#x3'
+        assert bvprodr.__repr__() == '(_ bv10 4)' or bvprodr.__repr__() == '#xa'
+        assert bvshiftedr.as_int() == 2
 
 if __name__ == "__main__":
     test_bv_extract()
     test_bv_boolops()
+    test_bv_arithops()
