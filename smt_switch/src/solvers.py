@@ -155,7 +155,7 @@ class Z3Solver(SolverBase):
             raise ValueError('In strict mode you must respect function arity:' +
                              ' {}: arity = {}'.format(fun, fun.arity))
 
-        solver_args = list(map(lambda arg:
+        solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
