@@ -2,7 +2,6 @@ from abc import ABCMeta, abstractmethod
 from functools import reduce
 import inspect
 from . import sorts
-from . import terms
 from . import smtutils
 from ..config import config
 
@@ -45,7 +44,8 @@ class FunctionBase(metaclass=ABCMeta):
             args = args[0]
 
         if args:
-            s_terms = list(filter(lambda arg: issubclass(arg.__class__, terms.TermBase), args))
+            # Not pretty but trying to avoid circular dependency
+            s_terms = list(filter(lambda arg: 'TermBase' in [base.__name__ for base in arg.__class__.__bases__], args))
             if not s_terms:
                 raise ValueError('There needs to be at least one argument of type [Solver Name]Term')
             return s_terms[0].solver.apply_fun(self, *args)
