@@ -159,8 +159,7 @@ class Z3Solver(SolverBase):
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        combined_tuple = fun.params + solver_args
-        z3expr = self._z3Funs[fun.__class__](*combined_tuple)
+        z3expr = self._z3Funs[fun.__class__](*(fun.params + solver_args))
         expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
         return expr
 
@@ -300,7 +299,7 @@ class CVC4Solver(SolverBase):
         return const
 
     def theory_const(self, sort, value):
-        cvc4tconst = self._CVC4Consts[sort.__class__](*sort.params, value)
+        cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
         tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, sort, [])
         return tconst
 
