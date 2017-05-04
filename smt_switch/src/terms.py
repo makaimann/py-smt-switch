@@ -1,7 +1,6 @@
 from abc import ABCMeta
 from . import functions
 from . import sorts
-from . import terms
 from ..config import config
 
 
@@ -98,22 +97,22 @@ class TermBase(metaclass=ABCMeta):
 
     # bit operations
     def __and__(self, other):
-        if not issubclass(other.__class__, terms.TermBase):
+        if not issubclass(other.__class__, TermBase):
             other = self._solver.theory_const(self.sort, other)
         return self._solver.apply_fun(functions.bvand(), self, other)
 
     def __or__(self, other):
-        if not issubclass(other.__class__, terms.TermBase):
+        if not issubclass(other.__class__, TermBase):
             other = self._solver.theory_const(self.sort, other)
         return self._solver.apply_fun(functions.bvor(), self, other)
 
     def __xor__(self, other):
-        if not issubclass(other.__class__, terms.TermBase):
+        if not issubclass(other.__class__, TermBase):
             other = self._solver.theory_const(self.sort, other)
         return self._solver.apply_fun(functions.bvxor(), self, other)
 
     def __lshift__(self, other):
-        if not issubclass(other.__class__, terms.TermBase):
+        if not issubclass(other.__class__, TermBase):
             other = self._solver.theory_const(self.sort, other)
         return self._solver.apply_fun(functions.bvshl(), self, other)
 
