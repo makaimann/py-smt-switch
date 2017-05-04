@@ -158,7 +158,9 @@ class Z3Solver(SolverBase):
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
-        z3expr = self._z3Funs[fun.__class__](*fun.params, *solver_args)
+        # Some versions of python don't allow fun(*list1, *list2) so combining
+        combined_tuple = fun.params + solver_args
+        z3expr = self._z3Funs[fun.__class__](*combined_tuple)
         expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
         return expr
 
