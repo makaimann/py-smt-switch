@@ -1,6 +1,6 @@
 from abc import ABCMeta
 from fractions import Fraction
-from smt_switch.config import config
+from ..config import config
 
 
 class ResultBase(metaclass=ABCMeta):

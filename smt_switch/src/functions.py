@@ -4,7 +4,7 @@ import inspect
 from . import sorts
 from . import terms
 from . import smtutils
-from smt_switch.config import config
+from ..config import config
 
 
 __MAXARGS__ = 6000

@@ -6,7 +6,7 @@ from . import functions
 from . import terms
 from . import results
 from fractions import Fraction
-from smt_switch.config import config
+from ..config import config
 
 
 class SolverBase(metaclass=ABCMeta):

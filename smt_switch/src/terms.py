@@ -1,8 +1,8 @@
 from abc import ABCMeta
-from smt_switch.src import functions
-from smt_switch.src import sorts
-from smt_switch.src import terms
-from smt_switch.config import config
+from . import functions
+from . import sorts
+from . import terms
+from ..config import config
 
 
 class TermBase(metaclass=ABCMeta):
