@@ -1,11 +1,13 @@
 from abc import ABCMeta, abstractmethod
-from math import inf
 from functools import reduce
 import inspect
 from . import sorts
 from . import terms
 from . import smtutils
 from smt_switch.config import config
+
+
+__MAXARGS__ = 6000
 
 
 class FunctionBase(metaclass=ABCMeta):
@@ -101,7 +103,7 @@ class Not(FunctionBase):
 
 class And(FunctionBase):
     arity = {'min': 2,
-             'max': inf}
+             'max': __MAXARGS__}
 
     def __init__(self):
         super().__init__(self.arity, '(and args)')
@@ -129,7 +131,7 @@ class And(FunctionBase):
 
 class Or(FunctionBase):
     arity = {'min': 2,
-             'max': inf}
+             'max': __MAXARGS__}
 
     def __init__(self):
         super().__init__(self.arity, '(or args)')
@@ -196,7 +198,7 @@ class Sub(FunctionBase):
 
 class Plus(FunctionBase):
     arity = {'min': 2,
-             'max': inf}
+             'max': __MAXARGS__}
 
     def __init__(self):
         super().__init__(self.arity, '(+ arg1 arg2)')
