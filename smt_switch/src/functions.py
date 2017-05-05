@@ -372,7 +372,32 @@ class bvshl(_bvbinops):
         super().__init__()
 
 
+class bvashr(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
 class bvlshr(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvult(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvule(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvugt(_bvbinops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvuge(_bvbinops):
     def __init__(self):
         super().__init__()
 

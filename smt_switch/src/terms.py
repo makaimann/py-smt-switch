@@ -116,6 +116,11 @@ class TermBase(metaclass=ABCMeta):
             other = self._solver.theory_const(self.sort, other)
         return self._solver.apply_fun(functions.bvshl(), self, other)
 
+    def __rshift__(self, other):
+        if not issubclass(other.__class__, TermBase):
+            other = self._solver.theory_const(self.sort, other)
+        return self._solver.apply_fun(functions.bvashr(), self, other)
+
 
 class CVC4Term(TermBase):
     def __init__(self, solver, op, solver_term, sort, children):
