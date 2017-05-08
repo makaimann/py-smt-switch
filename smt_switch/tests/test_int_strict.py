@@ -1,9 +1,9 @@
 import pytest
 from smt_switch.config import config
-from smt_switch import solvers
 from smt_switch import sorts
 from smt_switch import functions
 from smt_switch import terms  # used in eval
+from . import all_solvers
 
 And = functions.And()
 Or = functions.Or()
@@ -30,7 +30,7 @@ def test_lia():
     # set the strict variable before importing other modules
     config.strict = True
     
-    for name, solver in solvers.solvers.items():  # iterate through the solvers
+    for name, solver in all_solvers.items():  # iterate through the solvers
         s = solver()
         s.set_logic('QF_LIA')
         isort = sorts.construct_sort(sorts.Int)
@@ -86,7 +86,7 @@ def test_ite():
     '''
     config.strict = True
 
-    for name, solver in solvers.solvers.items():
+    for name, solver in all_solvers.items():
         s = solver()
 
         # demonstrating that you don't need to use sorts.construct_sort

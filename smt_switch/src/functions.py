@@ -298,6 +298,7 @@ class extract(FunctionBase):
     def osort(self, *args):
         return sorts.BitVec(self.width)
 
+
 class concat(FunctionBase):
     arity = {'min': 2,
              'max': 2}
@@ -307,6 +308,21 @@ class concat(FunctionBase):
 
     def osort(self, *args):
         return sorts.BitVec(args[0].sort.width + args[1].sort.width)
+
+
+class zero_extend(FunctionBase):
+    arity = {'min': 1,
+             'max': 1}
+
+    def __init__(self, pad_width):
+        self._pad_width = pad_width
+        super().__init__(self.arity, '((_ zero_extend i) BitVec)')
+
+    def params(self):
+        return (self._pad_width,)
+
+    def osort(self, *args):
+        return sorts.BitVec(args[0].sort.width + self._pad_width)
 
 
 class _bvbinops(FunctionBase):
@@ -322,7 +338,7 @@ class _bvbinops(FunctionBase):
     def osort(self, *args):
         arg_sorts = smtutils.sorts_list(args)
         if not reduce(lambda x, y: x and y, arg_sorts):
-            raise ValueError('bvadd requires consistent sorts')
+            raise ValueError('{} requires consistent sorts'.format(self.__class__.__name__))
         else:
             return arg_sorts[0]
 
@@ -382,22 +398,57 @@ class bvlshr(_bvbinops):
         super().__init__()
 
 
-class bvult(_bvbinops):
+# bv boolean operations
+class _bvboolops(FunctionBase):
+    '''
+       A base class for all BitVector operations that take two arguments
+    '''
+    arity = {'min': 2,
+             'max': 2}
+
+    def __init__(self):
+        super().__init__(self.arity, '({} (_ BitVec m) (_ BitVec m) (_ BitVec m))'.format(self.__class__.__name__))
+
+    def osort(self, *args):
+        return sorts.Bool()
+
+
+class bvult(_bvboolops):
     def __init__(self):
         super().__init__()
 
 
-class bvule(_bvbinops):
+class bvule(_bvboolops):
     def __init__(self):
         super().__init__()
 
 
-class bvugt(_bvbinops):
+class bvugt(_bvboolops):
     def __init__(self):
         super().__init__()
 
 
-class bvuge(_bvbinops):
+class bvuge(_bvboolops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvslt(_bvboolops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvsle(_bvboolops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvsgt(_bvboolops):
+    def __init__(self):
+        super().__init__()
+
+
+class bvsge(_bvboolops):
     def __init__(self):
         super().__init__()
 

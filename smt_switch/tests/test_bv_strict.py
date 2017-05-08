@@ -2,7 +2,7 @@ import pytest
 from smt_switch.config import config
 from smt_switch import sorts
 from smt_switch import functions
-from smt_switch import solvers
+from . import all_solvers
 
 
 And = functions.And()
@@ -25,7 +25,7 @@ def test_bv_extract():
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
 
-    for name, solver in solvers.solvers.items():
+    for name, solver in all_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
 
@@ -80,7 +80,7 @@ def test_bv_boolops():
 
     bvsort = sorts.BitVec(8)
 
-    for name, solver in solvers.solvers.items():
+    for name, solver in all_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
@@ -156,7 +156,7 @@ def test_bv_arithops():
 
     bvsort = sorts.BitVec(4)
 
-    for name, solver in solvers.solvers.items():
+    for name, solver in all_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
