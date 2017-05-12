@@ -157,6 +157,7 @@ class CVC4Solver(SolverBase):
         if isinstance(constraints, list):
             for constraint in constraints:
                 sort = getattr(constraint, 'sort', type(constraint))
+                # check that sort is bool (could be python bool)
                 if sort != bool and sort != sorts.Bool():
                     raise ValueError('Can only assert formulas of sort Bool. ' +
                                      'Received sort: {}'.format(sort))
