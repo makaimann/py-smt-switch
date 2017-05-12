@@ -107,3 +107,22 @@ class Z3BoolResult(Z3Result):
     def __bool__(self):
         return self.value.__bool__()
 
+
+class BoolectorBitVecResult(ResultBase):
+    '''
+       Class for holding Boolector results
+       Note: Boolector does not differentiate between BitVec of length 1 and Bool
+    '''
+    def __init__(self, value):
+        super().__init__(value)
+
+    def as_int(self):
+        return int(self.value.assignment, base=2)
+
+    def as_bool(self):
+        if self.value.width != 1:
+            raise ValueError("Can't interpret BitVec of width > 1 as a bool")
+        return bool(self.value.assignment)
+
+    def __repr__(self):
+        return self.value.assignment.__repr__()
