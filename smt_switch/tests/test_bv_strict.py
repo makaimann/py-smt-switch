@@ -2,7 +2,7 @@ import pytest
 from smt_switch.config import config
 from smt_switch import sorts
 from smt_switch import functions
-from . import all_solvers
+from smt_switch.tests import bv_solvers
 
 
 And = functions.And()
@@ -16,6 +16,7 @@ Plus = functions.Plus()
 Sub = functions.Sub()
 Equals = functions.Equals()
 
+
 def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
@@ -25,7 +26,7 @@ def test_bv_extract():
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
 
@@ -50,7 +51,11 @@ def test_bv_extract():
 
         eq = s.apply_fun(Equals, x_31_1, x_30_0)
 
-        print('Asserting', eq)
+        if name != 'Boolector':
+            # boolector does not keep string representation of formulas
+            # eventually I'll just implement this myself
+            print('Asserting', eq)
+    
         s.Assert(eq)
 
         eq2 = s.apply_fun(Equals, x_31_31, x_0_0)
@@ -80,7 +85,7 @@ def test_bv_boolops():
 
     bvsort = sorts.BitVec(8)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
@@ -132,10 +137,13 @@ def test_bv_boolops():
         bvnr = s.get_value(bvnotresult)
 
         # make assertions about values
-        # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvr1.__repr__() == '(_ bv0 8)' or bvr1.__repr__() == '#x00'
-        assert bvr2.__repr__() == '(_ bv245 8)' or bvr2.__repr__() == '#xf5'
-        assert bvnr.__repr__() == '(_ bv170 8)' or bvnr.__repr__() == '#xaa'
+        # still figuring out how to get z3 and boolector to print smt-lib format for results
+        # assert bvr1.__repr__() == '(_ bv0 8)' or bvr1.__repr__() == '#x00'
+        # assert bvr2.__repr__() == '(_ bv245 8)' or bvr2.__repr__() == '#xf5'
+        # assert bvnr.__repr__() == '(_ bv170 8)' or bvnr.__repr__() == '#xaa'
+        assert bvr1.as_int() == 0
+        assert bvr2.as_int() == 245
+        assert bvnr.as_int() == 170
 
 
 def test_bv_arithops():
@@ -156,7 +164,7 @@ def test_bv_arithops():
 
     bvsort = sorts.BitVec(4)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
@@ -200,10 +208,14 @@ def test_bv_arithops():
         bvprodr = s.get_value(bvprod)
         bvshiftedr = s.get_value(bvshifted)
 
-        # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvsumr.__repr__() == '(_ bv3 4)' or bvsumr.__repr__() == '#x3'
-        assert bvprodr.__repr__() == '(_ bv10 4)' or bvprodr.__repr__() == '#xa'
+        # still figuring out how to get z3 and boolector to print smt-lib format for results
+        # assert bvsumr.__repr__() == '(_ bv3 4)' or bvsumr.__repr__() == '#x3'
+        # assert bvprodr.__repr__() == '(_ bv10 4)' or bvprodr.__repr__() == '#xa'
+        # assert bvshiftedr.as_int() == 2
+        assert bvsumr.as_int() == 3
+        assert bvprodr.as_int() == 10
         assert bvshiftedr.as_int() == 2
+
 
 if __name__ == "__main__":
     test_bv_extract()

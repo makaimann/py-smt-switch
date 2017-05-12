@@ -139,3 +139,15 @@ class Z3Term(TermBase):
             return self.solver_term.sexpr()
         else:
             return self.solver_term.__repr__()
+
+
+class BoolectorTerm(TermBase):
+    def __init__(self, solver, op, solver_term, sort, children):
+        super().__init__(solver, op, solver_term, sort, children)
+
+    def __repr__(self):
+        # This isn't the best solution, but boolector's __str__ and __repr__ are not implemented
+        return self.solver_term.symbol
+
+    def __str__(self):
+        return self.solver_term.symbol
