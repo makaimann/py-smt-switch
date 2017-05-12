@@ -113,7 +113,7 @@ class Z3Solver(SolverBase):
         if isinstance(constraints, list):
             # get z3 termss
             for constraint in constraints:
-                if constraint.sort != 'Bool':
+                if constraint.sort != sorts.Bool():
                     raise ValueError('Can only assert formulas of sort Bool. ' +
                                      'Received sort: {}'.format(constraint.sort))
                 self._solver.add(constraints)
