@@ -41,12 +41,9 @@ class BoolectorSolver(SolverBase):
                                # Boolector doesn't follow smt lib for shifts and requires that
                                # bv << s has s.width == log2(bv.width) (with appropriate ceilings)
                                # However, it does infer the widths if pass an int, so just using int
-                               functions.bvshl: lambda bv, s: \
-                                                self._btor.Sll(bv, int(s.bits, base=2) if hasattr(s, 'bits') else self._btor.Const(s, ceil(log2(bv.width)))),
-                               functions.bvashr: lambda bv, s: \
-                                                 self._btor.Sra(bv, int(s.bits, base=2) if hasattr(s, 'bits') else self._btor.Const(s, ceil(log2(bv.width)))),
-                               functions.bvlshr: lambda bv, s: \
-                                                 self._btor.Srl(bv, int(s.bits, base=2) if hasattr(s, 'bits') else self._btor.Const(s, ceil(log2(bv.width)))),
+                               functions.bvshl: self.Sll,
+                               functions.bvashr: self.Sra,
+                               functions.bvlshr: self.Srl,
                                functions.bvult: self._btor.Ult,
                                functions.bvule: self._btor.Ulte,
                                functions.bvugt: self._btor.Ugt,
@@ -170,3 +167,28 @@ class BoolectorSolver(SolverBase):
 
         result = reduce(lambda x, y: self._btor.Or(x, y), args)
         return result
+
+    def Sll(self, bv, shift):
+        if not isinstance(shift, int):
+            shift = int(shift.bits, base=2)
+        slice_bv = bv[bv.width-1-shift:]
+        zeros = self._btor.Const(0, shift)
+        return self._btor.Concat(slice_bv, zeros)
+
+    def Srl(self, bv, shift):
+        if not isinstance(shift, int):
+            shift = int(shift.bits, base=2)
+        slice_bv = bv[:shift]
+        zeros = self._btor.Const(0, shift)
+        return self._btor.Concat(zeros, slice_bv)
+
+    def Sra(self, bv, shift):
+        if not isinstance(shift, int):
+            shift = int(shift.bits, base=2)
+        slice_bv = bv[:shift]
+        zeros = self._btor.Const(0, shift)
+        ones = self._btor.Const('1'*shift)
+        msb = bv[bv.width-1:bv.width-1]
+        ones_concat = self._btor.Concat(ones, slice_bv)
+        zeros_concat = self._btor.Concat(zeros, slice_bv)
+        return self._btor.Cond(msb == 0b1, ones_concat, zeros_concat)
