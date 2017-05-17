@@ -111,17 +111,19 @@ class Z3Solver(SolverBase):
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
-            # get z3 termss
+            # get z3 terms
             for constraint in constraints:
-                if constraint.sort != 'Bool':
+                sort = getattr(constraint, 'sort', type(constraint))
+                if sort != bool and sort != sorts.Bool():
                     raise ValueError('Can only assert formulas of sort Bool. ' +
-                                     'Received sort: {}'.format(constraint.sort))
-                self._solver.add(constraints)
+                                     'Received sort: {}'.format(sort))
+                self._solver.add(getattr(constraint, 'solver_term', constraint))
         else:
-            if constraints.sort != sorts.Bool():
+            sort = getattr(constraints, 'sort', type(constraints))
+            if sort != bool and sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
-                                 'Received sort: {}'.format(constraints.sort))
-            self._solver.add(constraints.solver_term)
+                                 'Received sort: {}'.format(sort))
+            self._solver.add(getattr(constraints, 'solver_term', constraints))
 
     def assertions(self):
         # had issue with returning an iterable for CVC4
