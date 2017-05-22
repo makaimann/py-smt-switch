@@ -120,8 +120,9 @@ class BoolectorSolver(SolverBase):
                 if sort != bool and sort != sorts.Bool():
                     raise ValueError('Can only assert formulas of sort Bool. ' +
                                      'Received sort: {}'.format(constraint.sort))
-                btorconstraint = getattr(constraint, 'solver_term',
-                                         self._btor.Const(constraint))
+                # getattr default was running and causing an error even if attribute existed
+                btorconstraint = constraint.solver_term if hasattr(constraint, 'solver_term') \
+                                 else self._btor.Const(constraint)
                 self._btor.Assert(btorconstraint)
                 # for now adding raw assertion to match other solvers
                 # in the future add the wrapped assertion
@@ -131,8 +132,9 @@ class BoolectorSolver(SolverBase):
             if sort != bool and sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
                                  'Received sort: {}'.format(constraints.sort))
-            btorconstraint = getattr(constraints, 'solver_term',
-                                     self._btor.Const(constraints))
+            # getattr default was running and causing an error even if attribute existed
+            btorconstraint = constraints.solver_term if hasattr(constraints, 'solver_term') \
+                             else self._btor.Const(constraints)
             self._btor.Assert(btorconstraint)
             # for now adding raw assertion to match other solvers
             # in the future add the wrapped assertion
