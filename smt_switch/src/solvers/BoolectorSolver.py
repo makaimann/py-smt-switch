@@ -116,21 +116,27 @@ class BoolectorSolver(SolverBase):
     def Assert(self, constraints):
         if isinstance(constraints, list):
             for constraint in constraints:
-                if constraint.sort != sorts.Bool():
+                sort = getattr(constraint, 'sort', type(constraint))
+                if sort != bool and sort != sorts.Bool():
                     raise ValueError('Can only assert formulas of sort Bool. ' +
                                      'Received sort: {}'.format(constraint.sort))
-                self._btor.Assert(constraint.solver_term)
+                btorconstraint = getattr(constraint, 'solver_term',
+                                         self._btor.Const(constraint))
+                self._btor.Assert(btorconstraint)
                 # for now adding raw assertion to match other solvers
                 # in the future add the wrapped assertion
-                self._assertions.append(constraint.solver_term)
+                self._assertions.append(btorconstraint)
         else:
-            if constraints.sort != sorts.Bool():
+            sort = getattr(constraints, 'sort', type(constraints))
+            if sort != bool and sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
                                  'Received sort: {}'.format(constraints.sort))
-            self._btor.Assert(constraints.solver_term)
+            btorconstraint = getattr(constraints, 'solver_term',
+                                     self._btor.Const(constraints))
+            self._btor.Assert(btorconstraint)
             # for now adding raw assertion to match other solvers
             # in the future add the wrapped assertion
-            self._assertions.append(constraints.solver_term)
+            self._assertions.append(btorconstraint)
 
     def assertions(self):
         return self._assertions

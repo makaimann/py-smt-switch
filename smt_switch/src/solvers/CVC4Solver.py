@@ -162,13 +162,13 @@ class CVC4Solver(SolverBase):
                     raise ValueError('Can only assert formulas of sort Bool. ' +
                                      'Received sort: {}'.format(sort))
                 self._smt.assertFormula(getattr(constraint, 'solver_term',
-                                                self.theory_const(sorts.Bool(), constraint)))
+                                                self._em.mkBoolConst(constraint)))
         else:
             sort = getattr(constraints, 'sort', type(constraints))
             if sort != bool and sort != sorts.Bool():
                 raise ValueError('Can only assert formulas of sort Bool. ' +
                                  'Received sort: {}'.format(sort))
-            self._smt.assertFormula(getattr(constraints, 'solver_term', \
+            self._smt.assertFormula(getattr(constraints, 'solver_term',
                                             self._em.mkBoolConst(constraints)))
 
     def assertions(self):
