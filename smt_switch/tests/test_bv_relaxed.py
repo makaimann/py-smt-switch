@@ -2,7 +2,7 @@ import pytest
 from smt_switch.config import config
 from smt_switch import sorts
 from smt_switch import functions
-from . import all_solvers
+from . import bv_solvers
 
 
 And = functions.And()
@@ -26,7 +26,7 @@ def test_bv_extract():
     # create bitvector type of width 32
     bvsort = sorts.construct_sort(sorts.BitVec, 32)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
 
@@ -47,7 +47,7 @@ def test_bv_extract():
 
         assert x_31_31.op == functions.extract(31, 31)
 
-        print('Asserting', x_31_1 == x_30_0)
+        print('Asserting x_31_1 == x_30_0')
         s.Assert(x_31_1 == x_30_0)
 
         eq2 = x_31_31 == x_0_0
@@ -77,7 +77,7 @@ def test_bv_boolops():
 
     bvsort = sorts.BitVec(8)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
@@ -107,10 +107,13 @@ def test_bv_boolops():
         bvnr = s.get_value(bvnotresult)
 
         # make assertions about values
-        # haven't figured out how to print smt-lib format from z3 results yet...
-        assert bvr1.__repr__() == '0' or bvr1.__repr__() == '0bin00000000'
-        assert bvr2.__repr__() == '245' or bvr2.__repr__() == '0bin11110101'
-        assert bvnr.__repr__() == '170' or bvnr.__repr__() == '0bin10101010'
+        # still figuring out how to get z3 and boolector to print smt-lib format for results
+        # assert bvr1.__repr__() == '0' or bvr1.__repr__() == '0bin00000000'
+        # assert bvr2.__repr__() == '245' or bvr2.__repr__() == '0bin11110101'
+        # assert bvnr.__repr__() == '170' or bvnr.__repr__() == '0bin10101010'
+        assert bvr1.as_int() == 0
+        assert bvr2.as_int() == 245
+        assert bvnr.as_int() == 170
 
 
 def test_bv_arithops():
@@ -132,7 +135,7 @@ def test_bv_arithops():
 
     bvsort = sorts.BitVec(4)
 
-    for name, solver in all_solvers.items():
+    for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
         s.set_option('produce-models', 'true')
@@ -161,8 +164,12 @@ def test_bv_arithops():
         bvprodr = s.get_value(bvprod)
         bvshiftedr = s.get_value(bvshifted)
 
-        assert bvsumr.__repr__() == '3' or bvsumr.__repr__() == '0bin0011'
-        assert bvprodr.__repr__() == '10' or bvprodr.__repr__() == '0bin1010'
+        # still figuring out how to get z3 and boolector to print smt-lib format for results
+        # assert bvsumr.__repr__() == '3' or bvsumr.__repr__() == '0bin0011'
+        # assert bvprodr.__repr__() == '10' or bvprodr.__repr__() == '0bin1010'
+        # assert bvshiftedr.as_int() == 2
+        assert bvsumr.as_int() == 3
+        assert bvprodr.as_int() == 10
         assert bvshiftedr.as_int() == 2
 
 if __name__ == "__main__":
