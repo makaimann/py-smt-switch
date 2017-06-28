@@ -46,7 +46,7 @@ class Z3BitVecResult(Z3Result):
     def as_int(self):
         return self.value.as_long()
 
-    
+
 class CVC4IntResult(CVC4Result):
     def __init__(self, value):
         super().__init__(value)
