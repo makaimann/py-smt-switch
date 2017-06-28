@@ -1,8 +1,7 @@
 import pytest
 from smt_switch.config import config
-from smt_switch import sorts
-from smt_switch import functions
-from . import bv_solvers
+from smt_switch import sorts, functions
+from smt_switch.tests import bv_solvers
 
 
 And = functions.And()
@@ -15,6 +14,50 @@ GEQ = functions.GEQ()
 Plus = functions.Plus()
 Sub = functions.Sub()
 Equals = functions.Equals()
+
+
+def test_bv_ops():
+    '''
+       bitvector example using overloaded operators
+    '''
+
+    # instantiate useful functions
+    bvuge = functions.bvuge()
+    
+    for name, solver in bv_solvers.items():
+        s = solver()
+        s.set_logic('QF_BV')
+        s.set_option('produce-models', 'true')
+
+        bv8 = sorts.BitVec(8)
+
+        bv1 = s.declare_const('bv1', bv8)
+        bv2 = s.declare_const('bv2', sorts.BitVec(8))
+
+        c = [bvuge(bv1, 1)]
+
+        bvs = [bv1, bv2]
+
+        for i in range(3, 11):
+            bvs.append(s.declare_const('bv{}'.format(i), bv8))
+
+        for b1, b2, b3 in zip(bvs, bvs[1:], bvs[2:]):
+            c.append(b1 + b2 == b3)
+
+        s.Assert(And(c))
+        
+        s.Assert(((bvs[9] << 4) >> 4) == bvs[6])
+        s.Assert(bvs[5] == 3)
+        s.Assert(bvs[8] - 6 == 7)
+
+        r = s.check_sat()
+        assert r
+
+        bvvals = [s.get_value(bv).as_int() for bv in bvs]
+
+        for b1, b2, b3 in zip(bvvals, bvvals[1:], bvvals[2:]):
+            assert b1 + b2 == b3
+
 
 def test_bv_extract():
     '''
@@ -144,13 +187,9 @@ def test_bv_arithops():
         bv2 = s.declare_const('bv2', bvsort)
         bv3 = s.declare_const('bv3', bvsort)
 
-        one = s.theory_const(bvsort, 1)
-        two = s.theory_const(bvsort, 2)
-        five = s.theory_const(bvsort, 5)
-
-        bvsum = bvadd(bv1, bv2)
+        bvsum = bv1 + bv2
         bvprod = bvmul(bv2, bv3)
-        bvshifted = bvlshr(bv3, 1)
+        bvshifted = bv3 >> 1
 
         #make assertions
         s.Assert(bv1 == 1)
@@ -173,6 +212,7 @@ def test_bv_arithops():
         assert bvshiftedr.as_int() == 2
 
 if __name__ == "__main__":
+    test_bv_ops()
     test_bv_extract()
     test_bv_boolops()
     test_bv_arithops()
