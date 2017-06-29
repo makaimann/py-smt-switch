@@ -23,37 +23,38 @@ class BoolectorSolver(SolverBase):
 
         self._BoolectorSorts = {sorts.BitVec: self._btor.BitVecSort,
                                 sorts.Bool: lambda: self._btor.BitVecSort(1)}
-        self._BoolectorFuns = {functions.Equals: self._btor.Eq,
-                               functions.And: self.And,
-                               functions.Or: self.Or,
-                               functions.Ite: self._btor.Cond,
-                               functions.Not: self._btor.Not,
+        self._BoolectorFuns = {functions.Equals.func: self._btor.Eq,
+                               functions.And.func: self.And,
+                               functions.Or.func: self.Or,
+                               functions.Ite.func: self._btor.Cond,
+                               functions.Not.func: self._btor.Not,
+                               # indexed operators are already raw representation so don't need to use .func
                                functions.extract: self._btor.Slice,
-                               functions.concat: self._btor.Concat,
-                               functions.bvand: self._btor.And,
-                               functions.bvor: self._btor.Or,
-                               functions.bvxor: self._btor.Xor,
-                               functions.bvadd: self._btor.Add,
-                               functions.bvsub: self._btor.Sub,
-                               functions.bvmul: self._btor.Mul,
-                               functions.bvudiv: self._btor.Udiv,
-                               functions.bvurem: self._btor.Urem,
+                               functions.concat.func: self._btor.Concat,
+                               functions.bvand.func: self._btor.And,
+                               functions.bvor.func: self._btor.Or,
+                               functions.bvxor.func: self._btor.Xor,
+                               functions.bvadd.func: self._btor.Add,
+                               functions.bvsub.func: self._btor.Sub,
+                               functions.bvmul.func: self._btor.Mul,
+                               functions.bvudiv.func: self._btor.Udiv,
+                               functions.bvurem.func: self._btor.Urem,
                                # Boolector doesn't follow smt lib for shifts and requires that
                                # bv << s has s.width == log2(bv.width) (with appropriate ceilings)
                                # However, it does infer the widths if pass an int, so just using int
-                               functions.bvshl: self.Sll,
-                               functions.bvashr: self.Sra,
-                               functions.bvlshr: self.Srl,
-                               functions.bvult: self._btor.Ult,
-                               functions.bvule: self._btor.Ulte,
-                               functions.bvugt: self._btor.Ugt,
-                               functions.bvuge: self._btor.Ugte,
-                               functions.bvslt: self._btor.Slt,
-                               functions.bvsle: self._btor.Slte,
-                               functions.bvsgt: self._btor.Sgt,
-                               functions.bvsge: self._btor.Sgte,
-                               functions.bvnot: self._btor.Not,
-                               functions.bvneg: self._btor.Neg}
+                               functions.bvshl.func: self.Sll,
+                               functions.bvashr.func: self.Sra,
+                               functions.bvlshr.func: self.Srl,
+                               functions.bvult.func: self._btor.Ult,
+                               functions.bvule.func: self._btor.Ulte,
+                               functions.bvugt.func: self._btor.Ugt,
+                               functions.bvuge.func: self._btor.Ugte,
+                               functions.bvslt.func: self._btor.Slt,
+                               functions.bvsle.func: self._btor.Slte,
+                               functions.bvsgt.func: self._btor.Sgt,
+                               functions.bvsge.func: self._btor.Sgte,
+                               functions.bvnot.func: self._btor.Not,
+                               functions.bvneg.func: self._btor.Neg}
 
         self._BoolectorConsts = {sorts.BitVec: self._btor.Const,
                                  sorts.Bool: self._btor.Const}
@@ -105,18 +106,14 @@ class BoolectorSolver(SolverBase):
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        if fun.__class__ == functions.mypartial:
-            f = fun.func
-            args = args + fun.args
-        else:
-            f = fun
+        args = args + fun.args
             
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
 
         solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[f](*solver_args)
+        btor_expr = self._BoolectorFuns[fun.func](*solver_args)
         expr = terms.BoolectorTerm(self, fun, btor_expr, list(args))
         return expr
 
