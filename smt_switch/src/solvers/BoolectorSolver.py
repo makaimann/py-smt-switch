@@ -101,20 +101,20 @@ class BoolectorSolver(SolverBase):
         tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, [sort])
         return tconst
 
-    def apply_fun(self, fun, *args):
+    def apply_fun(self, op, *args):
         # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        args = args + fun.args
-            
+        args = args + op.args
+
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
 
         solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[fun.func](*solver_args)
-        expr = terms.BoolectorTerm(self, fun, btor_expr, list(args))
+        btor_expr = self._BoolectorFuns[op.func](*solver_args)
+        expr = terms.BoolectorTerm(self, op, btor_expr, list(args))
         return expr
 
     def Assert(self, constraints):
