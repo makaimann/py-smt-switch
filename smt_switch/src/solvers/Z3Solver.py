@@ -86,14 +86,14 @@ class Z3Solver(SolverBase):
     def declare_const(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
-        const = terms.Z3Term(self, functions.No_op, z3const, sort, [])
+        const = terms.Z3Term(self, functions.No_op, z3const, [sort])
         return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
-        tconst = terms.Z3Term(self, functions.No_op, z3tconst, sort, [])
+        tconst = terms.Z3Term(self, functions.No_op, z3tconst, [sort])
         return tconst
 
     # if config strict, check arity of function
@@ -103,7 +103,7 @@ class Z3Solver(SolverBase):
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
         # TODO: Handle keyword args
-        if fun.__class__ == partial:
+        if fun.__class__ == functions.mypartial:
             args = fun.args + args
             f = fun.func
         else:

@@ -92,25 +92,32 @@ class BoolectorSolver(SolverBase):
     def declare_const(self, name, sort):
         btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
         btorconst = self._btor.Var(btorsort, name)
-        const = terms.BoolectorTerm(self, functions.No_op, btorconst, sort, [])
+        const = terms.BoolectorTerm(self, functions.No_op, btorconst, [sort])
         return const
 
     def theory_const(self, sort, value):
         btortconst = self._BoolectorConsts[sort.__class__](*((value,) + sort.params))
-        tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, sort, [])
+        tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, [sort])
         return tconst
 
     def apply_fun(self, fun, *args):
-        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-            raise ValueError('In strict mode you must respect function arity:' +
-                             ' {}: arity = {}'.format(fun, fun.arity))
+        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+        #     raise ValueError('In strict mode you must respect function arity:' +
+        #                      ' {}: arity = {}'.format(fun, fun.arity))
+
+        if fun.__class__ == functions.mypartial:
+            f = fun.func
+            args = args + fun.args
+        else:
+            f = fun
+            
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
 
         solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[fun.__class__](*(solver_args + fun.params))
-        expr = terms.BoolectorTerm(self, fun, btor_expr, fun.osort(*args), list(args))
+        btor_expr = self._BoolectorFuns[f](*solver_args)
+        expr = terms.BoolectorTerm(self, fun, btor_expr, list(args))
         return expr
 
     def Assert(self, constraints):

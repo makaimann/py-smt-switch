@@ -5,7 +5,7 @@ from ..config import config
 
 
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, solver, op, solver_term, sort, children):
+    def __init__(self, solver, op, solver_term, children):
         self._solver = solver
         self._op = op
         self._solver_term = solver_term
@@ -17,8 +17,13 @@ class TermBase(metaclass=ABCMeta):
         # because of No_op case i.e. when constructing a const
         # -- There are no arguments, so sort information is lost
         # unless passed in directly
-        self._sort = sort
-        self._children = children
+        if op != functions.No_op:
+            self._children = children
+        else:
+            self._children = []
+
+        # Note: for now, fun is always a partial function
+        self._sort = fun2sort[op.func](*children)
 
     @property
     def children(self):
@@ -123,16 +128,16 @@ class TermBase(metaclass=ABCMeta):
 
 
 class CVC4Term(TermBase):
-    def __init__(self, solver, op, solver_term, sort, children):
-        super().__init__(solver, op, solver_term, sort, children)
+    def __init__(self, solver, op, solver_term, children):
+        super().__init__(solver, op, solver_term, children)
 
     def __repr__(self):
         return self.solver_term.toString()
 
 
 class Z3Term(TermBase):
-    def __init__(self, solver, op, solver_term, sort, children):
-        super().__init__(solver, op, solver_term, sort, children)
+    def __init__(self, solver, op, solver_term, children):
+        super().__init__(solver, op, solver_term, children)
 
     def __repr__(self):
         if config.strict:
@@ -142,8 +147,8 @@ class Z3Term(TermBase):
 
 
 class BoolectorTerm(TermBase):
-    def __init__(self, solver, op, solver_term, sort, children):
-        super().__init__(solver, op, solver_term, sort, children)
+    def __init__(self, solver, op, solver_term, children):
+        super().__init__(solver, op, solver_term, children)
 
     def __repr__(self):
         # This isn't the best solution, but boolector's __str__ and __repr__ are not implemented
@@ -151,3 +156,45 @@ class BoolectorTerm(TermBase):
 
     def __str__(self):
         return self.solver_term.symbol
+
+
+def _bool_fun(*args):
+    return sorts.Bool()
+
+
+fun2sort = {functions.And: _bool_fun,
+            functions.Or: _bool_fun,
+            functions._No_op: sorts.get_sort,
+            functions.Equals: _bool_fun,
+            functions.Not: _bool_fun,
+            functions.LT: _bool_fun,
+            functions.GT: _bool_fun,
+            functions.LEQ: _bool_fun,
+            functions.GEQ: _bool_fun,
+            functions.bvult: _bool_fun,
+            functions.bvule: _bool_fun,
+            functions.bvugt: _bool_fun,
+            functions.bvuge: _bool_fun,
+            functions.bvslt: _bool_fun,
+            functions.bvsle: _bool_fun,
+            functions.bvsgt: _bool_fun,
+            functions.bvsge: _bool_fun,
+            functions.bvnot: sorts.get_sort,
+            functions.bvneg: sorts.get_sort,
+            functions.Ite: lambda *args: sorts.get_sort(args[1:]),
+            functions.Sub: sorts.get_sort,
+            functions.Plus: sorts.get_sort,
+            functions.extract: lambda *args: sorts.get_sort(args[2]),
+            functions.concat: lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
+            functions.zero_extend: lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
+            functions.bvand: sorts.get_sort,
+            functions.bvor: sorts.get_sort,
+            functions.bvxor: sorts.get_sort,
+            functions.bvadd: sorts.get_sort,
+            functions.bvsub: sorts.get_sort,
+            functions.bvmul: sorts.get_sort,
+            functions.bvudiv: sorts.get_sort,
+            functions.bvurem: sorts.get_sort,
+            functions.bvshl: sorts.get_sort,
+            functions.bvashr: sorts.get_sort,
+            functions.bvlshr: sorts.get_sort}
