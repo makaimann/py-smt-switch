@@ -78,3 +78,13 @@ def construct_sort(identifier, *args):
 
 py2sort = {int : Int,
            bool : Bool}
+
+
+def get_sort(*args):
+    for a in args:
+        if hasattr(a, 'sort'):
+            return a.sort
+        elif issubclass(a.__class__, SortBase):
+            return a
+
+    raise ValueError('Was expecting at least one argument with a valid sort')

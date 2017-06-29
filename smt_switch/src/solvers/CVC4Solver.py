@@ -115,21 +115,28 @@ class CVC4Solver(SolverBase):
     def declare_const(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = terms.CVC4Term(self, functions.No_op, cvc4const, sort, [])
+        const = terms.CVC4Term(self, functions.No_op, cvc4const, [sort])
         return const
 
     def theory_const(self, sort, value):
         cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
-        tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, sort, [])
+        tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, [sort])
         return tconst
 
     # if config strict, check arity and don't allow python objects as arguments
     def apply_fun(self, fun, *args):
+
+        if fun.__class__ == functions.mypartial:
+            f = fun.func
+#            args = fun.args + args
+        else:
+            f = fun
+        
         if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
             raise ValueError('In strict mode you must respect function arity:' +
                              ' {}: arity = {}'.format(fun, fun.arity))
 
-        cvc4fun = self._CVC4Funs[fun.__class__]
+        cvc4fun = self._CVC4Funs[f]
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
@@ -147,10 +154,11 @@ class CVC4Solver(SolverBase):
                                     args))
 
         # check if just indexer or needs to be evaluated
+        # TODO: handle situation where all args together
         if not isinstance(cvc4fun, int):
-            cvc4fun = self._em.mkConst(cvc4fun(*fun.params))
+            cvc4fun = self._em.mkConst(cvc4fun(*fun.args))
         cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-        expr = terms.CVC4Term(self, fun, cvc4terms, fun.osort(*args), list(args))
+        expr = terms.CVC4Term(self, fun, cvc4terms, list(args))
         return expr
 
     def Assert(self, constraints):
