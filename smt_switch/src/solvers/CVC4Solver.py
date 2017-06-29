@@ -28,41 +28,42 @@ class CVC4Solver(SolverBase):
                            sorts.Int: self._em.integerType,
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
+        # Note: indexed operators don't index by .func because already reference unindexed function
         self._CVC4Funs = {functions.extract: self.CVC4.BitVectorExtract,
-                          functions.concat: self.CVC4.BITVECTOR_CONCAT,
-                          functions.zero_extend: self.CVC4.BITVECTOR_ZERO_EXTEND,
-                          functions.Equals: self.CVC4.EQUAL,
-                          functions.Not: self.CVC4.NOT,
-                          functions.And: self.CVC4.AND,
-                          functions.Or: self.CVC4.OR,
-                          functions.Ite: self.CVC4.ITE,
-                          functions.Sub: self.CVC4.MINUS,
-                          functions.Plus: self.CVC4.PLUS,
-                          functions.LT: self.CVC4.LT,
-                          functions.LEQ: self.CVC4.LEQ,
-                          functions.GT: self.CVC4.GT,
-                          functions.GEQ: self.CVC4.GEQ,
-                          functions.bvand: self.CVC4.BITVECTOR_AND,
-                          functions.bvor: self.CVC4.BITVECTOR_OR,
-                          functions.bvxor: self.CVC4.BITVECTOR_XOR,
-                          functions.bvadd: self.CVC4.BITVECTOR_PLUS,
-                          functions.bvsub: self.CVC4.BITVECTOR_SUB,
-                          functions.bvmul: self.CVC4.BITVECTOR_MULT,
-                          functions.bvudiv: self.CVC4.BITVECTOR_UDIV,
-                          functions.bvurem: self.CVC4.BITVECTOR_UREM,
-                          functions.bvshl: self.CVC4.BITVECTOR_SHL,
-                          functions.bvashr: self.CVC4.BITVECTOR_ASHR,
-                          functions.bvlshr: self.CVC4.BITVECTOR_LSHR,
-                          functions.bvult: self.CVC4.BITVECTOR_ULT,
-                          functions.bvule: self.CVC4.BITVECTOR_ULE,
-                          functions.bvugt: self.CVC4.BITVECTOR_UGT,
-                          functions.bvuge: self.CVC4.BITVECTOR_UGE,
-                          functions.bvslt: self.CVC4.BITVECTOR_SLT,
-                          functions.bvsle: self.CVC4.BITVECTOR_SLE,
-                          functions.bvsgt: self.CVC4.BITVECTOR_SGT,
-                          functions.bvsge: self.CVC4.BITVECTOR_SGE,
-                          functions.bvnot: self.CVC4.BITVECTOR_NOT,
-                          functions.bvneg: self.CVC4.BITVECTOR_NEG}
+                          functions.concat.func: self.CVC4.BITVECTOR_CONCAT,
+                          functions.zero_extend.func: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          functions.Equals.func: self.CVC4.EQUAL,
+                          functions.Not.func: self.CVC4.NOT,
+                          functions.And.func: self.CVC4.AND,
+                          functions.Or.func: self.CVC4.OR,
+                          functions.Ite.func: self.CVC4.ITE,
+                          functions.Sub.func: self.CVC4.MINUS,
+                          functions.Plus.func: self.CVC4.PLUS,
+                          functions.LT.func: self.CVC4.LT,
+                          functions.LEQ.func: self.CVC4.LEQ,
+                          functions.GT.func: self.CVC4.GT,
+                          functions.GEQ.func: self.CVC4.GEQ,
+                          functions.bvand.func: self.CVC4.BITVECTOR_AND,
+                          functions.bvor.func: self.CVC4.BITVECTOR_OR,
+                          functions.bvxor.func: self.CVC4.BITVECTOR_XOR,
+                          functions.bvadd.func: self.CVC4.BITVECTOR_PLUS,
+                          functions.bvsub.func: self.CVC4.BITVECTOR_SUB,
+                          functions.bvmul.func: self.CVC4.BITVECTOR_MULT,
+                          functions.bvudiv.func: self.CVC4.BITVECTOR_UDIV,
+                          functions.bvurem.func: self.CVC4.BITVECTOR_UREM,
+                          functions.bvshl.func: self.CVC4.BITVECTOR_SHL,
+                          functions.bvashr.func: self.CVC4.BITVECTOR_ASHR,
+                          functions.bvlshr.func: self.CVC4.BITVECTOR_LSHR,
+                          functions.bvult.func: self.CVC4.BITVECTOR_ULT,
+                          functions.bvule.func: self.CVC4.BITVECTOR_ULE,
+                          functions.bvugt.func: self.CVC4.BITVECTOR_UGT,
+                          functions.bvuge.func: self.CVC4.BITVECTOR_UGE,
+                          functions.bvslt.func: self.CVC4.BITVECTOR_SLT,
+                          functions.bvsle.func: self.CVC4.BITVECTOR_SLE,
+                          functions.bvsgt.func: self.CVC4.BITVECTOR_SGT,
+                          functions.bvsge.func: self.CVC4.BITVECTOR_SGE,
+                          functions.bvnot.func: self.CVC4.BITVECTOR_NOT,
+                          functions.bvneg.func: self.CVC4.BITVECTOR_NEG}
         self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult,
                              sorts.Int: results.CVC4IntResult,
                              sorts.Real: results.CVC4RealResult,
@@ -126,17 +127,12 @@ class CVC4Solver(SolverBase):
     # if config strict, check arity and don't allow python objects as arguments
     def apply_fun(self, fun, *args):
 
-        if fun.__class__ == functions.mypartial:
-            f = fun.func
-#            args = fun.args + args
-        else:
-            f = fun
-        
-        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-            raise ValueError('In strict mode you must respect function arity:' +
-                             ' {}: arity = {}'.format(fun, fun.arity))
+        # commented out while updating functions
+        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+        #     raise ValueError('In strict mode you must respect function arity:' +
+        #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        cvc4fun = self._CVC4Funs[f]
+        cvc4fun = self._CVC4Funs[fun.func]
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]

@@ -14,41 +14,42 @@ class Z3Solver(SolverBase):
                 sorts.Int: z3.Int,
                 sorts.Real: z3.Real,
                 sorts.Bool: z3.Bool}
+    # Note: indexed operators are already raw functions so don't use .func
     _z3Funs = {functions.extract: z3.Extract,
-               functions.concat: z3.Concat,
-               functions.zero_extend: z3.ZeroExt,
-               functions.Not: z3.Not,
-               functions.Equals: lambda arg1, arg2: arg1 == arg2,
-               functions.And: z3.And,
-               functions.Or: z3.Or,
-               functions.Ite: z3.If,
-               functions.Sub: lambda arg1, arg2: arg1 - arg2,
-               functions.Plus: lambda arg1, arg2: arg1 + arg2,
-               functions.LT: lambda arg1, arg2: arg1 < arg2,
-               functions.LEQ: lambda arg1, arg2: arg1 <= arg2,
-               functions.GT: lambda arg1, arg2: arg1 > arg2,
-               functions.GEQ: lambda arg1, arg2: arg1 >= arg2,
-               functions.bvand: lambda arg1, arg2: arg1 & arg2,
-               functions.bvor: lambda arg1, arg2: arg1 | arg2,
-               functions.bvxor: lambda arg1, arg2: arg1 ^ arg2,
-               functions.bvadd: lambda arg1, arg2: arg1 + arg2,
-               functions.bvsub: lambda arg1, arg2: arg1 - arg2,
-               functions.bvmul: lambda arg1, arg2: arg1*arg2,
-               functions.bvudiv: z3.UDiv,
+               functions.concat.func: z3.Concat,
+               functions.zero_extend.func: z3.ZeroExt,
+               functions.Not.func: z3.Not,
+               functions.Equals.func: lambda arg1, arg2: arg1 == arg2,
+               functions.And.func: z3.And,
+               functions.Or.func: z3.Or,
+               functions.Ite.func: z3.If,
+               functions.Sub.func: lambda arg1, arg2: arg1 - arg2,
+               functions.Plus.func: lambda arg1, arg2: arg1 + arg2,
+               functions.LT.func: lambda arg1, arg2: arg1 < arg2,
+               functions.LEQ.func: lambda arg1, arg2: arg1 <= arg2,
+               functions.GT.func: lambda arg1, arg2: arg1 > arg2,
+               functions.GEQ.func: lambda arg1, arg2: arg1 >= arg2,
+               functions.bvand.func: lambda arg1, arg2: arg1 & arg2,
+               functions.bvor.func: lambda arg1, arg2: arg1 | arg2,
+               functions.bvxor.func: lambda arg1, arg2: arg1 ^ arg2,
+               functions.bvadd.func: lambda arg1, arg2: arg1 + arg2,
+               functions.bvsub.func: lambda arg1, arg2: arg1 - arg2,
+               functions.bvmul.func: lambda arg1, arg2: arg1*arg2,
+               functions.bvudiv.func: z3.UDiv,
                functions.bvurem: z3.URem,
-               functions.bvshl: lambda arg1, arg2: arg1 << arg2,
-               functions.bvashr: lambda arg1, arg2: arg1 >> arg2,
-               functions.bvlshr: z3.LShR,
-               functions.bvult: z3.ULT,
-               functions.bvule: z3.ULE,
-               functions.bvugt: z3.UGT,
-               functions.bvuge: z3.UGE,
-               functions.bvslt: lambda arg1, arg2: arg1 < arg2,
-               functions.bvsle: lambda arg1, arg2: arg1 <= arg2,
-               functions.bvsgt: lambda arg1, arg2: arg1 > arg2,
-               functions.bvsge: lambda arg1, arg2: arg1 >= arg2,
-               functions.bvnot: lambda arg: ~arg,
-               functions.bvneg: lambda arg: -arg}
+               functions.bvshl.func: lambda arg1, arg2: arg1 << arg2,
+               functions.bvashr.func: lambda arg1, arg2: arg1 >> arg2,
+               functions.bvlshr.func: z3.LShR,
+               functions.bvult.func: z3.ULT,
+               functions.bvule.func: z3.ULE,
+               functions.bvugt.func: z3.UGT,
+               functions.bvuge.func: z3.UGE,
+               functions.bvslt.func: lambda arg1, arg2: arg1 < arg2,
+               functions.bvsle.func: lambda arg1, arg2: arg1 <= arg2,
+               functions.bvsgt.func: lambda arg1, arg2: arg1 > arg2,
+               functions.bvsge.func: lambda arg1, arg2: arg1 >= arg2,
+               functions.bvnot.func: lambda arg: ~arg,
+               functions.bvneg.func: lambda arg: -arg}
     _z3Consts = {sorts.BitVec: z3.BitVecVal,
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal}
@@ -102,18 +103,13 @@ class Z3Solver(SolverBase):
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        # TODO: Handle keyword args
-        if fun.__class__ == functions.mypartial:
-            args = fun.args + args
-            f = fun.func
-        else:
-            f = fun
+        args = fun.args + args
 
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[f](*solver_args)
+        z3expr = self._z3Funs[fun.func](*solver_args)
         expr = terms.Z3Term(self, fun, z3expr, list(args))
         return expr
 

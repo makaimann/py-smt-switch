@@ -5,16 +5,16 @@ from smt_switch import functions
 from smt_switch import terms  # used in eval
 from . import all_solvers
 
-And = functions.And()
-Or = functions.Or()
-Ite = functions.Ite()
-LT = functions.LT()
-LEQ = functions.LEQ()
-GT = functions.GT()
-GEQ = functions.GEQ()
-Plus = functions.Plus()
-Sub = functions.Sub()
-Equals = functions.Equals()
+And = functions.And
+Or = functions.Or
+Ite = functions.Ite
+LT = functions.LT
+LEQ = functions.LEQ
+GT = functions.GT
+GEQ = functions.GEQ
+Plus = functions.Plus
+Sub = functions.Sub
+Equals = functions.Equals
 
 
 def test_lia():
