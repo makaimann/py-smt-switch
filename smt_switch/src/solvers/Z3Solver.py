@@ -98,19 +98,19 @@ class Z3Solver(SolverBase):
         return tconst
 
     # if config strict, check arity of function
-    def apply_fun(self, fun, *args):
+    def apply_fun(self, op, *args):
         # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        args = fun.args + args
+        args = op.args + args
 
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[fun.func](*solver_args)
-        expr = terms.Z3Term(self, fun, z3expr, list(args))
+        z3expr = self._z3Funs[op.func](*solver_args)
+        expr = terms.Z3Term(self, op, z3expr, list(args))
         return expr
 
     def Assert(self, constraints):
