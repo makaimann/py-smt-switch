@@ -1,480 +1,124 @@
-from abc import ABCMeta, abstractmethod
-from functools import reduce
-import inspect
-from . import sorts
-from . import smtutils
+from functools import partial, update_wrapper
+import sys
 from ..config import config
 
 
-__MAXARGS__ = 6000
+__all__ = ['No_op', 'And', 'Or'] # append to list in generate functions
 
 
-class FunctionBase(metaclass=ABCMeta):
-    def __init__(self, arity, usage):
-        self._arity = arity
-        self._usage = usage
+class mypartial(partial):
+    def __init__(self, fun, *args, **kwargs):
+        self._p = partial(fun, *args, **kwargs)
 
-    @property
-    def arity(self):
-        return self._arity
+    def __eq__(self, other):
+        return self._p.func == other._p.func and self._p.args == other._p.args and self._p.keywords == other._p.keywords
 
-    @property
-    def usage(self):
-        return self._usage
+    def __repr__(self):
+        return '<mypartial: {}, {} {}>'.format(self._p.func.__repr__(), self._p.args, self._p.keywords)
 
-    @property
-    def params(self):
-        '''
-            Holds the parameters needed to apply the function.
-            Ex// (_ extract 12 6)
-            Functions with nontrivial params overload this property
-        '''
-        return ()
 
-    @abstractmethod
-    def osort(self, *args):
-        pass
+def _partial_eval(fun, m, *args, **kwargs):
 
-    def __call__(self, *args):
-        if config.strict:
-            raise ValueError('Functions are not callable in strict mode.' +
-                            ' Use solver.apply_fun(fun, *args)')
-        # handle list argument
-        if args and isinstance(args[0], list):
-            args = args[0]
+    # expand out args if list
+    if args and isinstance(args[0], list):
+        args = args[0]
 
+    # expand arguments if partial function input
+    if fun.__class__ == partial:
+        args = fun.args + args
+        kwargs = {**fun.keywords, **kwargs}
+
+    if len(args) < m:
+        return partial(fun, *args, **kwargs)
+
+    else:
         if args:
             # Not pretty but trying to avoid circular dependency
             s_terms = list(filter(lambda arg: 'TermBase' in [base.__name__ for base in arg.__class__.__bases__], args))
             if not s_terms:
                 raise ValueError('There needs to be at least one argument of type [Solver Name]Term')
-            return s_terms[0].solver.apply_fun(self, *args)
-        else:
-            raise ValueError('Incorrect number of arguments for' +
-                             'function: {}'.format(self.__class__.__name__))
+            return s_terms[0].solver.apply_fun(fun, *args, **kwargs)
 
+        # execution should never reach this code
+        assert True == False, 'An invariant is broken'
+
+
+class reprwrapper(object):
+    def __init__(self, repr, func):
+        self._repr = repr
+        self._func = func
+        update_wrapper(self, func)
+    def __call__(self, *args, **kw):
+        return self._func(*args, **kw)
     def __repr__(self):
-        return self.__class__.__name__
-
-    def __eq__(self, other):
-        '''
-           Functions are defined by name and params only
-        '''
-        return self.__class__ == other.__class__ and self.params == other.params
+        return self._repr(self._func)
 
 
-class No_op(FunctionBase):
-    arity = {'min': 0,
-             'max': 0}
+def withrepr(reprfun):
+    def _wrap(func):
+        return reprwrapper(reprfun, func)
+    return _wrap
+    
 
-    def __init__(self):
-        super().__init__(self.arity, 'No_op')
+def _generate_function(name, m):
+    @withrepr(lambda x: "<Func: %s>" % name)
+    def func(*args):
+        return _partial_eval(func, m, *args)
 
-    def osort(self, *args):
-        if len(args) == 0:
-            raise ValueError('No_op is used when constructing constants. ' +
-                             'Therefore its output sort is parameterized by a Term.' +
-                             'Need to provide an argument to determine output sort')
-        else:
-            return args[0].sort
-
-
-class Equals(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(= arg1 arg2)')
-
-    def osort(self, *args):
-        return sorts.Bool()
+    func.__name__ == name
+    return func
 
 
-class Not(FunctionBase):
-    arity = {'min': 1,
-             'max': 1}
-
-    def __init__(self):
-        super().__init__(self.arity, '(not formula)')
-
-    def osort(self, *args):
-        return sorts.Bool()
+funcs = {'Equals': 2, 'Not': 1, 'Ite': 3, 'Sub': 2, 'Plus': 2, 'LT': 2,
+         'GT': 2, 'LEQ': 2, 'GEQ': 2, 'extract': 3, 'concat': 2,
+         'zero_extend': 2, 'bvand': 2, 'bvor': 2, 'bvxor': 2, 'bvadd': 2,
+         'bvsub': 2, 'bvmul': 2, 'bvudiv': 2, 'bvurem': 2, 'bvshl': 2,
+         'bvashr': 2, 'bvlshr': 2, 'bvult': 2, 'bvule': 2, 'bvugt': 2,
+         'bvuge': 2, 'bvule': 2, 'bvslt': 2, 'bvsle': 2, 'bvsgt': 2,
+         'bvsge': 2, 'bvnot': 1, 'bvneg': 1}
 
 
-class And(FunctionBase):
-    arity = {'min': 2,
-             'max': __MAXARGS__}
+namespace = sys._getframe(0).f_globals
+for name, m in funcs.items():
+    f = _generate_function(name, m)
+    namespace[name] = f
+    __all__.append(name)
 
-    def __init__(self):
-        super().__init__(self.arity, '(and args)')
 
-    def osort(self, *args):
-        return sorts.Bool()
+def No_op():
+    return 'No_op'
 
-    # Overloading callable FunctionBase
-    def __call__(self, *args):
-        if config.strict:
-            raise ValueError('Functions are not callable in strict mode. ' +
-                             'Use solver.apply_fun(fun, *args)')
 
+def And(*args):
+    if config.strict:
+        return _partial_eval(And, 2, *args)
+    else:
         if args and isinstance(args[0], list):
             args = args[0]
 
-        # With strict=False, (and arg1) --> arg1, (and ) --> True
         if len(args) > 1:
-            return args[0].solver.apply_fun(self, *args)
+            return _partial_eval(And, 2, *args)
         elif len(args) == 1:
-            return args[0]
+            return args[0].solver.apply_fun(And, *args)
         else:
             return True
 
 
-class Or(FunctionBase):
-    arity = {'min': 2,
-             'max': __MAXARGS__}
-
-    def __init__(self):
-        super().__init__(self.arity, '(or args)')
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-    # Overloading callable FunctionBase
-    def __call__(self, *args):
-        if config.strict:
-            raise ValueError('Functions are not callable in strict mode. ' +
-                             'Use solver.apply_fun(fun, *args)')
+def Or(*args):
+    if config.strict:
+        return _partial_eval(Or, 2, *args)
+    else:
         if args and isinstance(args[0], list):
             args = args[0]
 
-        # With strict=False, (and arg1) --> arg1, (and ) --> True
         if len(args) > 1:
-            return args[0].solver.apply_fun(self, *args)
+            return _partial_eval(And, 2, *args)
         elif len(args) == 1:
-            return args[0]
+            return args[0].solver.apply_fun(Or, *args)
         else:
-            return False
+            return True
 
 
-class Ite(FunctionBase):
-    arity = {'min': 3,
-             'max': 3}
-
-    def __init__(self):
-        super().__init__(self.arity, '(ite cond arg1 arg2)')
-
-    def osort(self, *args):
-        if len(args) != 3:
-            raise ValueError(self.__class__name +
-                             '\'s output sort is parameterized by its arguments. ' +
-                             'Need all three inputs to determine output sort.')
-
-        arg_sorts = smtutils.sorts_list(args)
-
-        # TODO: check for consistent output sort
-        if not reduce(lambda x, y: x and y, arg_sorts[1:]):
-            raise ValueError('Ite needs to have a consistent output sort. ' +
-                             'Received {} and {}'.format(args[1].sort, args[2].sort))
-        ite_sorts = list(filter(lambda arg: arg is not None, arg_sorts[1:]))
-        if not ite_sorts:
-            raise ValueError('Can\'t determine output sort based on inputs {} and {}'.format(args[1], args[2]))
-        return ite_sorts[0]
-
-
-class Sub(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(- arg1 arg2)')
-
-    def osort(self, *args):
-        if len(args) == 0:
-            raise ValueError(self.__class__name +
-                             '\'s output sort is parameterized by its arguments. ' +
-                             'Need an argument to determine output sort.')
-        return args[0].sort
-
-
-class Plus(FunctionBase):
-    arity = {'min': 2,
-             'max': __MAXARGS__}
-
-    def __init__(self):
-        super().__init__(self.arity, '(+ arg1 arg2)')
-
-    def osort(self, *args):
-        if len(args) == 0:
-            raise ValueError(self.__class__name +
-                             '\'s output sort is parameterized by its arguments. ' +
-                             'Need an argument to determine output sort.')
-        return args[0].sort
-
-
-class LT(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(< arg1 arg2)')
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-
-class LEQ(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(<= arg1 arg2)')
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-
-class GT(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(> arg1 arg2)')
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-
-class GEQ(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(>= arg1 arg2)')
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-
-def declare_fun(identifier, *args):
-    if isinstance(identifier, str):
-        if identifier[0] == '(':
-            # TODO: Parse S expression
-            raise NotImplementedError
-        else:
-            return eval(identifier)(*args)
-    elif inspect.isclass(identifier):
-        return identifier(*args)
-    else:
-        raise ValueError('Expected [str | Sort] and received {}.'.format(type(identifier)))
-
-
-#################### Bit Vector Operations #################################################
-
-class extract(FunctionBase):
-    arity = {'min': 1,
-             'max': 1}
-
-    def __init__(self, ub, lb):
-        super().__init__(self.arity, '(extract BitVec)')
-        self._ub = ub
-        self._lb = lb
-
-    @property
-    def ub(self):
-        return self._ub
-
-    @property
-    def lb(self):
-        return self._lb
-
-    @property
-    def width(self):
-        return self._ub - self._lb + 1
-
-    @property
-    def params(self):
-        return (self._ub, self._lb)
-
-    def osort(self, *args):
-        return sorts.BitVec(self.width)
-
-
-class concat(FunctionBase):
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '(concat BitVec)')
-
-    def osort(self, *args):
-        return sorts.BitVec(args[0].sort.width + args[1].sort.width)
-
-
-class zero_extend(FunctionBase):
-    arity = {'min': 1,
-             'max': 1}
-
-    def __init__(self, pad_width):
-        self._pad_width = pad_width
-        super().__init__(self.arity, '((_ zero_extend i) BitVec)')
-
-    def params(self):
-        return (self._pad_width,)
-
-    def osort(self, *args):
-        return sorts.BitVec(args[0].sort.width + self._pad_width)
-
-
-class _bvbinops(FunctionBase):
-    '''
-       A base class for all BitVector operations that take two arguments
-    '''
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '({} (_ BitVec m) (_ BitVec m) (_ BitVec m))'.format(self.__class__.__name__))
-
-    def osort(self, *args):
-        arg_sorts = smtutils.sorts_list(args)
-        if not reduce(lambda x, y: x and y, arg_sorts):
-            raise ValueError('{} requires consistent sorts'.format(self.__class__.__name__))
-        else:
-            return arg_sorts[0]
-
-
-class bvand(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvor(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvxor(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvadd(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvsub(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvmul(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvudiv(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvurem(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvshl(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvashr(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvlshr(_bvbinops):
-    def __init__(self):
-        super().__init__()
-
-
-# bv boolean operations
-class _bvboolops(FunctionBase):
-    '''
-       A base class for all BitVector operations that take two arguments
-    '''
-    arity = {'min': 2,
-             'max': 2}
-
-    def __init__(self):
-        super().__init__(self.arity, '({} (_ BitVec m) (_ BitVec m) (_ BitVec m))'.format(self.__class__.__name__))
-
-    def osort(self, *args):
-        return sorts.Bool()
-
-
-class bvult(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvule(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvugt(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvuge(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvslt(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvsle(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvsgt(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvsge(_bvboolops):
-    def __init__(self):
-        super().__init__()
-
-
-class _bvunops(FunctionBase):
-    '''
-       A base class for unary binary functions
-    '''
-    arity = {'min': 1,
-             'max': 1}
-    
-    def __init__(self):
-        super().__init__(self.arity, '({} (_ BitVec m) (_ BitVec m))')
-
-    def osort(self, *args):
-        if len(args) != 1:
-            raise ValueError('Incorrect number of arguments to unary operator {}'.format(self.__class__.__name__))
-
-        return args[0].sort
-
-
-class bvnot(_bvunops):
-    def __init__(self):
-        super().__init__()
-
-
-class bvneg(_bvunops):
-    def __init__(self):
-        super().__init__()
+def declare_fun(fun, *args):
+    # partial function evaluation all handled internally
+    return fun(*args)
