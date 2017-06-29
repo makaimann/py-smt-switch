@@ -1,3 +1,4 @@
+from functools import partial
 from .. import sorts
 from .. import functions
 from .. import terms
@@ -97,16 +98,23 @@ class Z3Solver(SolverBase):
 
     # if config strict, check arity of function
     def apply_fun(self, fun, *args):
-        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-            raise ValueError('In strict mode you must respect function arity:' +
-                             ' {}: arity = {}'.format(fun, fun.arity))
+        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+        #     raise ValueError('In strict mode you must respect function arity:' +
+        #                      ' {}: arity = {}'.format(fun, fun.arity))
+
+        # TODO: Handle keyword args
+        if fun.__class__ == partial:
+            args = fun.args + args
+            f = fun.func
+        else:
+            f = fun
 
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[fun.__class__](*(fun.params + solver_args))
-        expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
+        z3expr = self._z3Funs[f](*solver_args)
+        expr = terms.Z3Term(self, fun, z3expr, list(args))
         return expr
 
     def Assert(self, constraints):
