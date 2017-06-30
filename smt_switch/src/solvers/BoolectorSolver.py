@@ -12,48 +12,42 @@ class BoolectorSolver(SolverBase):
     def __init__(self):
         self.boolector = __import__('boolector')
         self._btor = self.boolector.Boolector()
-        # not able to reset without this --> not the best for performance
-        # is there another way?
-        # didn't seem to help
-        # self._btor.Set_opt(self.boolector.BTOR_OPT_INCREMENTAL, 1)
-        
+
         # keeping track of assertions because couldn't figure out
         # how to print a list of assertions (other than dumping to stdout/a file)
         self._assertions = []
 
         self._BoolectorSorts = {sorts.BitVec: self._btor.BitVecSort,
                                 sorts.Bool: lambda: self._btor.BitVecSort(1)}
-        self._BoolectorFuns = {functions.Equals: self._btor.Eq,
-                               functions.And: self.And,
-                               functions.Or: self.Or,
-                               functions.Ite: self._btor.Cond,
-                               functions.Not: self._btor.Not,
-                               functions.extract: self._btor.Slice,
-                               functions.concat: self._btor.Concat,
-                               functions.bvand: self._btor.And,
-                               functions.bvor: self._btor.Or,
-                               functions.bvxor: self._btor.Xor,
-                               functions.bvadd: self._btor.Add,
-                               functions.bvsub: self._btor.Sub,
-                               functions.bvmul: self._btor.Mul,
-                               functions.bvudiv: self._btor.Udiv,
-                               functions.bvurem: self._btor.Urem,
-                               # Boolector doesn't follow smt lib for shifts and requires that
-                               # bv << s has s.width == log2(bv.width) (with appropriate ceilings)
-                               # However, it does infer the widths if pass an int, so just using int
-                               functions.bvshl: self.Sll,
-                               functions.bvashr: self.Sra,
-                               functions.bvlshr: self.Srl,
-                               functions.bvult: self._btor.Ult,
-                               functions.bvule: self._btor.Ulte,
-                               functions.bvugt: self._btor.Ugt,
-                               functions.bvuge: self._btor.Ugte,
-                               functions.bvslt: self._btor.Slt,
-                               functions.bvsle: self._btor.Slte,
-                               functions.bvsgt: self._btor.Sgt,
-                               functions.bvsge: self._btor.Sgte,
-                               functions.bvnot: self._btor.Not,
-                               functions.bvneg: self._btor.Neg}
+        self._BoolectorFuns = {functions.Equals.func: self._btor.Eq,
+                               functions.And.func: self.And,
+                               functions.Or.func: self.Or,
+                               functions.Ite.func: self._btor.Cond,
+                               functions.Not.func: self._btor.Not,
+                               # indexed operators are already raw representation so don't need to use .func
+                               functions.Extract: self._btor.Slice,
+                               functions.Concat.func: self._btor.Concat,
+                               functions.BVAnd.func: self._btor.And,
+                               functions.BVOr.func: self._btor.Or,
+                               functions.BVXor.func: self._btor.Xor,
+                               functions.BVAdd.func: self._btor.Add,
+                               functions.BVSub.func: self._btor.Sub,
+                               functions.BVMul.func: self._btor.Mul,
+                               functions.BVUdiv.func: self._btor.Udiv,
+                               functions.BVUrem.func: self._btor.Urem,
+                               functions.BVShl.func: self.Sll,
+                               functions.BVAshr.func: self.Sra,
+                               functions.BVLshr.func: self.Srl,
+                               functions.BVUlt.func: self._btor.Ult,
+                               functions.BVUle.func: self._btor.Ulte,
+                               functions.BVUgt.func: self._btor.Ugt,
+                               functions.BVUge.func: self._btor.Ugte,
+                               functions.BVSlt.func: self._btor.Slt,
+                               functions.BVSle.func: self._btor.Slte,
+                               functions.BVSgt.func: self._btor.Sgt,
+                               functions.BVSge.func: self._btor.Sgte,
+                               functions.BVNot.func: self._btor.Not,
+                               functions.BVNeg.func: self._btor.Neg}
 
         self._BoolectorConsts = {sorts.BitVec: self._btor.Const,
                                  sorts.Bool: self._btor.Const}
@@ -92,25 +86,26 @@ class BoolectorSolver(SolverBase):
     def declare_const(self, name, sort):
         btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
         btorconst = self._btor.Var(btorsort, name)
-        const = terms.BoolectorTerm(self, functions.No_op, btorconst, sort, [])
+        const = terms.BoolectorTerm(self, functions.No_op, btorconst, [sort])
         return const
 
     def theory_const(self, sort, value):
         btortconst = self._BoolectorConsts[sort.__class__](*((value,) + sort.params))
-        tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, sort, [])
+        tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, [sort])
         return tconst
 
-    def apply_fun(self, fun, *args):
-        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-            raise ValueError('In strict mode you must respect function arity:' +
-                             ' {}: arity = {}'.format(fun, fun.arity))
+    def apply_fun(self, op, *args):
+        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+        #     raise ValueError('In strict mode you must respect function arity:' +
+        #                      ' {}: arity = {}'.format(fun, fun.arity))
+
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
 
         solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[fun.__class__](*(solver_args + fun.params))
-        expr = terms.BoolectorTerm(self, fun, btor_expr, fun.osort(*args), list(args))
+        btor_expr = self._BoolectorFuns[op.func](*(solver_args + op.args))
+        expr = terms.BoolectorTerm(self, op, btor_expr, list(args))
         return expr
 
     def Assert(self, constraints):

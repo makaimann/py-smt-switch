@@ -5,16 +5,16 @@ from smt_switch import functions
 from smt_switch import terms  # used in eval
 from . import all_solvers
 
-And = functions.And()
-Or = functions.Or()
-Ite = functions.Ite()
-LT = functions.LT()
-LEQ = functions.LEQ()
-GT = functions.GT()
-GEQ = functions.GEQ()
-Plus = functions.Plus()
-Sub = functions.Sub()
-Equals = functions.Equals()
+And = functions.And
+Or = functions.Or
+Ite = functions.Ite
+LT = functions.LT
+LEQ = functions.LEQ
+GT = functions.GT
+GEQ = functions.GEQ
+Add = functions.Add
+Sub = functions.Sub
+Equals = functions.Equals
 
 
 def test_lia():
@@ -43,7 +43,7 @@ def test_lia():
 
         assert i1 in i1plusi2.children
         assert i2 in i1plusi2.children
-        assert i1plusi2.op == Plus
+        assert i1plusi2.op == Add
 
         # demonstrate interpreted python constants
         formula1 = s.apply_fun(LEQ, i1plusi2, 6)

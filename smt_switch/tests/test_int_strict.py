@@ -5,16 +5,16 @@ from smt_switch import functions
 from smt_switch import terms  # used in eval
 from . import all_solvers
 
-And = functions.And()
-Or = functions.Or()
-Ite = functions.Ite()
-LT = functions.LT()
-LEQ = functions.LEQ()
-GT = functions.GT()
-GEQ = functions.GEQ()
-Plus = functions.Plus()
-Sub = functions.Sub()
-Equals = functions.Equals()
+And = functions.And
+Or = functions.Or
+Ite = functions.Ite
+LT = functions.LT
+LEQ = functions.LEQ
+GT = functions.GT
+GEQ = functions.GEQ
+Add = functions.Add
+Sub = functions.Sub
+Equals = functions.Equals
 
 
 def test_lia():
@@ -39,12 +39,12 @@ def test_lia():
         i3 = s.declare_const('i3', isort)
         assert isinstance(i1, eval('terms.{}Term'.format(name)))
 
-        i1plusi2 = s.apply_fun(Plus, i1, i2)
+        i1plusi2 = s.apply_fun(Add, i1, i2)
         i3minusi2 = s.apply_fun(Sub, i3, i2)
 
         assert i1 in i1plusi2.children
         assert i2 in i1plusi2.children
-        assert i1plusi2.op == Plus
+        assert i1plusi2.op == Add
 
         six = s.theory_const(isort, 6)
         two = s.theory_const(isort, 2)
@@ -112,7 +112,7 @@ def test_ite():
         assert x1pos in y1.children
         assert y1.sort == sorts.Int()
 
-        y1plusy2 = s.apply_fun(Plus, y1, y2)
+        y1plusy2 = s.apply_fun(Add, y1, y2)
 
         three = s.theory_const(isort, 3)
         y1plusy2GEQ3 = s.apply_fun(GEQ, y1plusy2, three)

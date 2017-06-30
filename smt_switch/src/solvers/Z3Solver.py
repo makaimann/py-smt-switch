@@ -1,3 +1,4 @@
+from functools import partial
 from .. import sorts
 from .. import functions
 from .. import terms
@@ -13,41 +14,42 @@ class Z3Solver(SolverBase):
                 sorts.Int: z3.Int,
                 sorts.Real: z3.Real,
                 sorts.Bool: z3.Bool}
-    _z3Funs = {functions.extract: z3.Extract,
-               functions.concat: z3.Concat,
-               functions.zero_extend: z3.ZeroExt,
-               functions.Not: z3.Not,
-               functions.Equals: lambda arg1, arg2: arg1 == arg2,
-               functions.And: z3.And,
-               functions.Or: z3.Or,
-               functions.Ite: z3.If,
-               functions.Sub: lambda arg1, arg2: arg1 - arg2,
-               functions.Plus: lambda arg1, arg2: arg1 + arg2,
-               functions.LT: lambda arg1, arg2: arg1 < arg2,
-               functions.LEQ: lambda arg1, arg2: arg1 <= arg2,
-               functions.GT: lambda arg1, arg2: arg1 > arg2,
-               functions.GEQ: lambda arg1, arg2: arg1 >= arg2,
-               functions.bvand: lambda arg1, arg2: arg1 & arg2,
-               functions.bvor: lambda arg1, arg2: arg1 | arg2,
-               functions.bvxor: lambda arg1, arg2: arg1 ^ arg2,
-               functions.bvadd: lambda arg1, arg2: arg1 + arg2,
-               functions.bvsub: lambda arg1, arg2: arg1 - arg2,
-               functions.bvmul: lambda arg1, arg2: arg1*arg2,
-               functions.bvudiv: z3.UDiv,
-               functions.bvurem: z3.URem,
-               functions.bvshl: lambda arg1, arg2: arg1 << arg2,
-               functions.bvashr: lambda arg1, arg2: arg1 >> arg2,
-               functions.bvlshr: z3.LShR,
-               functions.bvult: z3.ULT,
-               functions.bvule: z3.ULE,
-               functions.bvugt: z3.UGT,
-               functions.bvuge: z3.UGE,
-               functions.bvslt: lambda arg1, arg2: arg1 < arg2,
-               functions.bvsle: lambda arg1, arg2: arg1 <= arg2,
-               functions.bvsgt: lambda arg1, arg2: arg1 > arg2,
-               functions.bvsge: lambda arg1, arg2: arg1 >= arg2,
-               functions.bvnot: lambda arg: ~arg,
-               functions.bvneg: lambda arg: -arg}
+    # Note: indexed operators are already raw functions so don't use .func
+    _z3Funs = {functions.Extract: z3.Extract,
+               functions.Concat.func: z3.Concat,
+               functions.Zero_extend.func: z3.ZeroExt,
+               functions.Not.func: z3.Not,
+               functions.Equals.func: lambda arg1, arg2: arg1 == arg2,
+               functions.And.func: z3.And,
+               functions.Or.func: z3.Or,
+               functions.Ite.func: z3.If,
+               functions.Sub.func: lambda arg1, arg2: arg1 - arg2,
+               functions.Add.func: lambda arg1, arg2: arg1 + arg2,
+               functions.LT.func: lambda arg1, arg2: arg1 < arg2,
+               functions.LEQ.func: lambda arg1, arg2: arg1 <= arg2,
+               functions.GT.func: lambda arg1, arg2: arg1 > arg2,
+               functions.GEQ.func: lambda arg1, arg2: arg1 >= arg2,
+               functions.BVAnd.func: lambda arg1, arg2: arg1 & arg2,
+               functions.BVOr.func: lambda arg1, arg2: arg1 | arg2,
+               functions.BVXor.func: lambda arg1, arg2: arg1 ^ arg2,
+               functions.BVAdd.func: lambda arg1, arg2: arg1 + arg2,
+               functions.BVSub.func: lambda arg1, arg2: arg1 - arg2,
+               functions.BVMul.func: lambda arg1, arg2: arg1*arg2,
+               functions.BVUdiv.func: z3.UDiv,
+               functions.BVUrem: z3.URem,
+               functions.BVShl.func: lambda arg1, arg2: arg1 << arg2,
+               functions.BVAshr.func: lambda arg1, arg2: arg1 >> arg2,
+               functions.BVLshr.func: z3.LShR,
+               functions.BVUlt.func: z3.ULT,
+               functions.BVUle.func: z3.ULE,
+               functions.BVUgt.func: z3.UGT,
+               functions.BVUge.func: z3.UGE,
+               functions.BVSlt.func: lambda arg1, arg2: arg1 < arg2,
+               functions.BVSle.func: lambda arg1, arg2: arg1 <= arg2,
+               functions.BVSgt.func: lambda arg1, arg2: arg1 > arg2,
+               functions.BVSge.func: lambda arg1, arg2: arg1 >= arg2,
+               functions.BVNot.func: lambda arg: ~arg,
+               functions.BVNeg.func: lambda arg: -arg}
     _z3Consts = {sorts.BitVec: z3.BitVecVal,
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal}
@@ -85,28 +87,28 @@ class Z3Solver(SolverBase):
     def declare_const(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
-        const = terms.Z3Term(self, functions.No_op, z3const, sort, [])
+        const = terms.Z3Term(self, functions.No_op, z3const, [sort])
         return const
 
     def theory_const(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
-        tconst = terms.Z3Term(self, functions.No_op, z3tconst, sort, [])
+        tconst = terms.Z3Term(self, functions.No_op, z3tconst, [sort])
         return tconst
 
     # if config strict, check arity of function
-    def apply_fun(self, fun, *args):
-        if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-            raise ValueError('In strict mode you must respect function arity:' +
-                             ' {}: arity = {}'.format(fun, fun.arity))
+    def apply_fun(self, op, *args):
+        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
+        #     raise ValueError('In strict mode you must respect function arity:' +
+        #                      ' {}: arity = {}'.format(fun, fun.arity))
 
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[fun.__class__](*(fun.params + solver_args))
-        expr = terms.Z3Term(self, fun, z3expr, fun.osort(*args), list(args))
+        z3expr = self._z3Funs[op.func](*(op.args + solver_args))
+        expr = terms.Z3Term(self, op, z3expr, list(args))
         return expr
 
     def Assert(self, constraints):
