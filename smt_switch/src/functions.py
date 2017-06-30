@@ -9,7 +9,7 @@ __all__ = ['And', 'Or']  # append to list in generate functions
 
 
 fdata = namedtuple('fdata', 'num_indices, min_arity, max_arity')
-__MAXARGS__ = 6000
+__MAXARGS__ = sys.maxsize
 
 funcs = {'Equals': fdata(0, 2, 2),
          'Not': fdata(0, 1, 1),
