@@ -103,13 +103,11 @@ class Z3Solver(SolverBase):
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        args = op.args + args
-
         solver_args = tuple(map(lambda arg:
                                arg.solver_term if isinstance(arg, terms.Z3Term)
                                else arg, args))
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[op.func](*solver_args)
+        z3expr = self._z3Funs[op.func](*(op.args + solver_args))
         expr = terms.Z3Term(self, op, z3expr, list(args))
         return expr
 

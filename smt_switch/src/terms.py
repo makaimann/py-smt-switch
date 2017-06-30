@@ -23,7 +23,7 @@ class TermBase(metaclass=ABCMeta):
             self._children = []
 
         # Note: for now, fun is always a partial function
-        self._sort = fun2sort[op.func](*children)
+        self._sort = fun2sort[op.func](*op.args, *children)
 
     @property
     def children(self):
@@ -185,7 +185,7 @@ fun2sort = {functions.And.func: _bool_fun,
             functions.Sub.func: sorts.get_sort,
             functions.Plus.func: sorts.get_sort,
             # indexed functions don't need to access internal func
-            functions.extract: sorts.get_sort,
+            functions.extract: lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
             functions.concat.func: lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
             functions.zero_extend.func: lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
             functions.bvand.func: sorts.get_sort,

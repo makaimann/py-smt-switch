@@ -134,8 +134,13 @@ def _gen_operator(fun, fdata, *args, **kwargs):
                                            *args[fdata.num_indices:], **kwargs)
 
     else:
-        raise ValueError('Expected {} inputs to indexed operator but received'
-                         .format(fdata.num_indices, len(args)))
+        if fdata.num_indices == 0:
+            # non-indexed operator
+            raise ValueError('Expected {} inputs to operator but received {}'
+                             .format(fdata.min_arity, len(args)))
+        else:
+            raise ValueError('Expected {} or {} inputs to operator but received {}'
+                             .format(fdata.num_indices, fdata.num_indices + fdata.min_arity, len(args)))
 
 
 def _generate_function(name, fdata):

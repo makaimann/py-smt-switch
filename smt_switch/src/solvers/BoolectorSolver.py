@@ -106,14 +106,12 @@ class BoolectorSolver(SolverBase):
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        args = args + op.args
-
         # handle list argument
         if isinstance(args[0], list):
             args = args[0]
 
         solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[op.func](*solver_args)
+        btor_expr = self._BoolectorFuns[op.func](*(solver_args + op.args))
         expr = terms.BoolectorTerm(self, op, btor_expr, list(args))
         return expr
 
