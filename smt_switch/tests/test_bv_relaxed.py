@@ -22,8 +22,8 @@ def test_bv_ops():
     '''
 
     # instantiate useful functions
-    bvuge = functions.bvuge()
-    
+    bvuge = functions.bvuge
+
     for name, solver in bv_solvers.items():
         s = solver()
         s.set_logic('QF_BV')
@@ -45,7 +45,7 @@ def test_bv_ops():
             c.append(b1 + b2 == b3)
 
         s.Assert(And(c))
-        
+
         s.Assert(((bvs[9] << 4) >> 4) == bvs[6])
         s.Assert(bvs[5] == 3)
         s.Assert(bvs[8] - 6 == 7)
