@@ -45,7 +45,9 @@ def test_bv_extract():
         assert x_31_1.sort == x_30_0.sort
         assert x_31_31.sort == x_0_0.sort
 
-        assert x_31_31.op == functions.extract(31, 31)
+        assert x_31_1.op == functions.extract(31, 1)
+
+        assert x_31_1.sort == sorts.BitVec(31)
 
         print('Asserting x_31_1 == x_30_0')
         s.Assert(x_31_1 == x_30_0)
