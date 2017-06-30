@@ -23,7 +23,7 @@ class TermBase(metaclass=ABCMeta):
             self._children = []
 
         # Note: for now, fun is always a partial function
-        self._sort = fun2sort[op.func](*op.args, *children)
+        self._sort = fun2sort[op.func](*(op.args + tuple(children)))
 
     @property
     def children(self):
