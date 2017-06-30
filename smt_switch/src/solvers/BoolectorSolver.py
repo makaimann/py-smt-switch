@@ -12,11 +12,7 @@ class BoolectorSolver(SolverBase):
     def __init__(self):
         self.boolector = __import__('boolector')
         self._btor = self.boolector.Boolector()
-        # not able to reset without this --> not the best for performance
-        # is there another way?
-        # didn't seem to help
-        # self._btor.Set_opt(self.boolector.BTOR_OPT_INCREMENTAL, 1)
-        
+
         # keeping track of assertions because couldn't figure out
         # how to print a list of assertions (other than dumping to stdout/a file)
         self._assertions = []
@@ -29,32 +25,29 @@ class BoolectorSolver(SolverBase):
                                functions.Ite.func: self._btor.Cond,
                                functions.Not.func: self._btor.Not,
                                # indexed operators are already raw representation so don't need to use .func
-                               functions.extract: self._btor.Slice,
-                               functions.concat.func: self._btor.Concat,
-                               functions.bvand.func: self._btor.And,
-                               functions.bvor.func: self._btor.Or,
-                               functions.bvxor.func: self._btor.Xor,
-                               functions.bvadd.func: self._btor.Add,
-                               functions.bvsub.func: self._btor.Sub,
-                               functions.bvmul.func: self._btor.Mul,
-                               functions.bvudiv.func: self._btor.Udiv,
-                               functions.bvurem.func: self._btor.Urem,
-                               # Boolector doesn't follow smt lib for shifts and requires that
-                               # bv << s has s.width == log2(bv.width) (with appropriate ceilings)
-                               # However, it does infer the widths if pass an int, so just using int
-                               functions.bvshl.func: self.Sll,
-                               functions.bvashr.func: self.Sra,
-                               functions.bvlshr.func: self.Srl,
-                               functions.bvult.func: self._btor.Ult,
-                               functions.bvule.func: self._btor.Ulte,
-                               functions.bvugt.func: self._btor.Ugt,
-                               functions.bvuge.func: self._btor.Ugte,
-                               functions.bvslt.func: self._btor.Slt,
-                               functions.bvsle.func: self._btor.Slte,
-                               functions.bvsgt.func: self._btor.Sgt,
-                               functions.bvsge.func: self._btor.Sgte,
-                               functions.bvnot.func: self._btor.Not,
-                               functions.bvneg.func: self._btor.Neg}
+                               functions.Extract: self._btor.Slice,
+                               functions.Concat.func: self._btor.Concat,
+                               functions.BVAnd.func: self._btor.And,
+                               functions.BVOr.func: self._btor.Or,
+                               functions.BVXor.func: self._btor.Xor,
+                               functions.BVAdd.func: self._btor.Add,
+                               functions.BVSub.func: self._btor.Sub,
+                               functions.BVMul.func: self._btor.Mul,
+                               functions.BVUdiv.func: self._btor.Udiv,
+                               functions.BVUrem.func: self._btor.Urem,
+                               functions.BVShl.func: self.Sll,
+                               functions.BVAshr.func: self.Sra,
+                               functions.BVLshr.func: self.Srl,
+                               functions.BVUlt.func: self._btor.Ult,
+                               functions.BVUle.func: self._btor.Ulte,
+                               functions.BVUgt.func: self._btor.Ugt,
+                               functions.BVUge.func: self._btor.Ugte,
+                               functions.BVSlt.func: self._btor.Slt,
+                               functions.BVSle.func: self._btor.Slte,
+                               functions.BVSgt.func: self._btor.Sgt,
+                               functions.BVSge.func: self._btor.Sgte,
+                               functions.BVNot.func: self._btor.Not,
+                               functions.BVNeg.func: self._btor.Neg}
 
         self._BoolectorConsts = {sorts.BitVec: self._btor.Const,
                                  sorts.Bool: self._btor.Const}
