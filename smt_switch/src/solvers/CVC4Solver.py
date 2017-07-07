@@ -1,7 +1,4 @@
 from .. import sorts
-from .. import functions
-from .. import terms
-from .. import results
 from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
@@ -28,46 +25,42 @@ class CVC4Solver(SolverBase):
                            sorts.Int: self._em.integerType,
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
-        # Note: indexed operators don't index by .func because already reference unindexed function
-        self._CVC4Funs = {functions.Extract: self.CVC4.BitVectorExtract,
-                          functions.Concat.func: self.CVC4.BITVECTOR_CONCAT,
-                          functions.Zero_extend.func: self.CVC4.BITVECTOR_ZERO_EXTEND,
-                          functions.Equals.func: self.CVC4.EQUAL,
-                          functions.Not.func: self.CVC4.NOT,
-                          functions.And.func: self.CVC4.AND,
-                          functions.Or.func: self.CVC4.OR,
-                          functions.Ite.func: self.CVC4.ITE,
-                          functions.Sub.func: self.CVC4.MINUS,
-                          functions.Add.func: self.CVC4.PLUS,
-                          functions.LT.func: self.CVC4.LT,
-                          functions.LEQ.func: self.CVC4.LEQ,
-                          functions.GT.func: self.CVC4.GT,
-                          functions.GEQ.func: self.CVC4.GEQ,
-                          functions.BVAnd.func: self.CVC4.BITVECTOR_AND,
-                          functions.BVOr.func: self.CVC4.BITVECTOR_OR,
-                          functions.BVXor.func: self.CVC4.BITVECTOR_XOR,
-                          functions.BVAdd.func: self.CVC4.BITVECTOR_PLUS,
-                          functions.BVSub.func: self.CVC4.BITVECTOR_SUB,
-                          functions.BVMul.func: self.CVC4.BITVECTOR_MULT,
-                          functions.BVUdiv.func: self.CVC4.BITVECTOR_UDIV,
-                          functions.BVUrem.func: self.CVC4.BITVECTOR_UREM,
-                          functions.BVShl.func: self.CVC4.BITVECTOR_SHL,
-                          functions.BVAshr.func: self.CVC4.BITVECTOR_ASHR,
-                          functions.BVLshr.func: self.CVC4.BITVECTOR_LSHR,
-                          functions.BVUlt.func: self.CVC4.BITVECTOR_ULT,
-                          functions.BVUle.func: self.CVC4.BITVECTOR_ULE,
-                          functions.BVUgt.func: self.CVC4.BITVECTOR_UGT,
-                          functions.BVUge.func: self.CVC4.BITVECTOR_UGE,
-                          functions.BVSlt.func: self.CVC4.BITVECTOR_SLT,
-                          functions.BVSle.func: self.CVC4.BITVECTOR_SLE,
-                          functions.BVSgt.func: self.CVC4.BITVECTOR_SGT,
-                          functions.BVSge.func: self.CVC4.BITVECTOR_SGE,
-                          functions.BVNot.func: self.CVC4.BITVECTOR_NOT,
-                          functions.BVNeg.func: self.CVC4.BITVECTOR_NEG}
-        self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult,
-                             sorts.Int: results.CVC4IntResult,
-                             sorts.Real: results.CVC4RealResult,
-                             sorts.Bool: results.CVC4BoolResult}
+
+        self._CVC4Funs = {'Extract': self.CVC4.BitVectorExtract,
+                          'Concat': self.CVC4.BITVECTOR_CONCAT,
+                          'Zero_extend': self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          'Equals': self.CVC4.EQUAL,
+                          'Not': self.CVC4.NOT,
+                          'And': self.CVC4.AND,
+                          'Or': self.CVC4.OR,
+                          'Ite': self.CVC4.ITE,
+                          'Sub': self.CVC4.MINUS,
+                          'Add': self.CVC4.PLUS,
+                          'LT': self.CVC4.LT,
+                          'LEQ': self.CVC4.LEQ,
+                          'GT': self.CVC4.GT,
+                          'GEQ': self.CVC4.GEQ,
+                          'BVAnd': self.CVC4.BITVECTOR_AND,
+                          'BVOr': self.CVC4.BITVECTOR_OR,
+                          'BVXor': self.CVC4.BITVECTOR_XOR,
+                          'BVAdd': self.CVC4.BITVECTOR_PLUS,
+                          'BVSub': self.CVC4.BITVECTOR_SUB,
+                          'BVMul': self.CVC4.BITVECTOR_MULT,
+                          'BVUdiv': self.CVC4.BITVECTOR_UDIV,
+                          'BVUrem': self.CVC4.BITVECTOR_UREM,
+                          'BVShl': self.CVC4.BITVECTOR_SHL,
+                          'BVAshr': self.CVC4.BITVECTOR_ASHR,
+                          'BVLshr': self.CVC4.BITVECTOR_LSHR,
+                          'BVUlt': self.CVC4.BITVECTOR_ULT,
+                          'BVUle': self.CVC4.BITVECTOR_ULE,
+                          'BVUgt': self.CVC4.BITVECTOR_UGT,
+                          'BVUge': self.CVC4.BITVECTOR_UGE,
+                          'BVSlt': self.CVC4.BITVECTOR_SLT,
+                          'BVSle': self.CVC4.BITVECTOR_SLE,
+                          'BVSgt': self.CVC4.BITVECTOR_SGT,
+                          'BVSge': self.CVC4.BITVECTOR_SGE,
+                          'BVNot': self.CVC4.BITVECTOR_NOT,
+                          'BVNeg': self.CVC4.BITVECTOR_NEG}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -116,46 +109,40 @@ class CVC4Solver(SolverBase):
     def declare_const(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = terms.CVC4Term(self, functions.No_op, cvc4const, [sort])
-        return const
+        return cvc4const
 
     def theory_const(self, sort, value):
         cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
-        tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, [sort])
-        return tconst
+        return cvc4tconst
 
     # if config strict, check arity and don't allow python objects as arguments
-    def apply_fun(self, op, *args):
+    def apply_fun(self, fname, indices, *args):
 
         # commented out while updating functions
         # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
         #     raise ValueError('In strict mode you must respect function arity:' +
         #                      ' {}: arity = {}'.format(fun, fun.arity))
 
-        cvc4fun = self._CVC4Funs[op.func]
-        # handle list argument
-        if isinstance(args[0], list):
-            args = args[0]
+        cvc4fun = self._CVC4Funs[fname]
 
-        if config.strict:
-            solver_args = [arg.solver_term for arg in args]
-        else:
-            # find a cvc4 term to infer the sort
-            # TODO: make this more robust
-            cvc4term = list(filter(lambda x: isinstance(x, terms.CVC4Term), args))[-1]
-            solver_args = tuple(map(lambda arg: arg.solver_term
-                                    if isinstance(arg, terms.CVC4Term)
-                                    else
-                                    self.theory_const(cvc4term.sort, arg).solver_term,
-                                    args))
+        # if config.strict:
+        #     solver_args = [arg.solver_term for arg in args]
+        # else:
+        #     # find a cvc4 term to infer the sort
+        #     # TODO: make this more robust
+        #     cvc4term = list(filter(lambda x: isinstance(x, terms.CVC4Term), args))[-1]
+        #     solver_args = tuple(map(lambda arg: arg.solver_term
+        #                             if isinstance(arg, terms.CVC4Term)
+        #                             else
+        #                             self.theory_const(cvc4term.sort, arg).solver_term,
+        #                             args))
 
         # check if just indexer or needs to be evaluated
         # TODO: handle situation where all args together
         if not isinstance(cvc4fun, int):
-            cvc4fun = self._em.mkConst(cvc4fun(*op.args))
-        cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-        expr = terms.CVC4Term(self, op, cvc4terms, list(args))
-        return expr
+            cvc4fun = self._em.mkConst(cvc4fun(*indices))
+        cvc4expr = self._em.mkExpr(cvc4fun, args)
+        return cvc4expr
 
     def Assert(self, constraints):
         if isinstance(constraints, list):
@@ -191,7 +178,7 @@ class CVC4Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._CVC4Results[var.sort.__class__](self._smt.getValue(var.solver_term))
+            return self._smt.getValue(var.solver_term)
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
