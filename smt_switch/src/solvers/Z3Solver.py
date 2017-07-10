@@ -47,7 +47,8 @@ class Z3Solver(SolverBase):
                'BVNeg': lambda arg: -arg}
     _z3Consts = {sorts.BitVec: z3.BitVecVal,
                  sorts.Int: z3.IntVal,
-                 sorts.Real: z3.RealVal}
+                 sorts.Real: z3.RealVal,
+                 sorts.Bool: lambda x: x}
     _z3Options = {'produce-models': 'model'}
 
     def __init__(self):
@@ -96,21 +97,8 @@ class Z3Solver(SolverBase):
         z3expr = self._z3Funs[fname](*(indices + args))
         return z3expr
 
-    def Assert(self, constraints):
-        if isinstance(constraints, list):
-            # get z3 terms
-            for constraint in constraints:
-                sort = getattr(constraint, 'sort', type(constraint))
-                if sort != bool and sort != sorts.Bool():
-                    raise ValueError('Can only assert formulas of sort Bool. ' +
-                                     'Received sort: {}'.format(sort))
-                self._solver.add(getattr(constraint, 'solver_term', constraint))
-        else:
-            sort = getattr(constraints, 'sort', type(constraints))
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. ' +
-                                 'Received sort: {}'.format(sort))
-            self._solver.add(getattr(constraints, 'solver_term', constraints))
+    def Assert(self, c):
+        self._solver.add(c)
 
     def assertions(self):
         # had issue with returning an iterable for CVC4
@@ -128,7 +116,7 @@ class Z3Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._solver.model().eval(var.solver_term)
+            return self._solver.model().eval(var)
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:

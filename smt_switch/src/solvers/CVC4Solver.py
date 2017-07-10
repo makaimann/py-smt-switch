@@ -144,23 +144,8 @@ class CVC4Solver(SolverBase):
         cvc4expr = self._em.mkExpr(cvc4fun, args)
         return cvc4expr
 
-    def Assert(self, constraints):
-        if isinstance(constraints, list):
-            for constraint in constraints:
-                sort = getattr(constraint, 'sort', type(constraint))
-                # check that sort is bool (could be python bool)
-                if sort != bool and sort != sorts.Bool():
-                    raise ValueError('Can only assert formulas of sort Bool. ' +
-                                     'Received sort: {}'.format(sort))
-                self._smt.assertFormula(getattr(constraint, 'solver_term',
-                                                self._em.mkBoolConst(constraint)))
-        else:
-            sort = getattr(constraints, 'sort', type(constraints))
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. ' +
-                                 'Received sort: {}'.format(sort))
-            self._smt.assertFormula(getattr(constraints, 'solver_term',
-                                            self._em.mkBoolConst(constraints)))
+    def Assert(self, c):
+            self._smt.assertFormula(c)
 
     def assertions(self):
         # TODO: fix iter error
@@ -178,7 +163,7 @@ class CVC4Solver(SolverBase):
 
     def get_value(self, var):
         if self.sat:
-            return self._smt.getValue(var.solver_term)
+            return self._smt.getValue(var)
         elif self.sat is not None:
             raise RuntimeError('Problem is unsat')
         else:

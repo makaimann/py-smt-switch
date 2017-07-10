@@ -1,6 +1,7 @@
 from abc import ABCMeta
 from . import sorts
 from ..config import config
+from fractions import Fraction
 
 
 class TermBase(metaclass=ABCMeta):
@@ -8,6 +9,7 @@ class TermBase(metaclass=ABCMeta):
         self._smt = smt
         self._op = op
         self._solver_term = solver_term
+        self._value = None
         # Note: instead of querying solvers and translating,
         #       it's easier to just pass this information
         #       directly since it's always known when
@@ -22,7 +24,7 @@ class TermBase(metaclass=ABCMeta):
             self._children = []
 
         # Note: for now, fun is always a partial function
-        self._sort = smt.fun2sort[op.fname](*(op.args + tuple(children)))
+        self._sort = fun2sort[op.fname](*(op.args + tuple(children)))
 
     @property
     def children(self):
@@ -39,23 +41,6 @@ class TermBase(metaclass=ABCMeta):
     @property
     def solver_term(self):
         return self._solver_term
-
-    # def _make_overloaded_op(self, function, *args):
-    #     if config.strict:
-    #         raise ValueError('Can\'t use overloaded operators in strict mode.' +
-    #                          'Instead, use smt.apply_fun({}, args)'.format(function))
-    #     self._smt.apply_fun(function, *args)
-
-    # Overloaded operators
-    # might use these someday
-    #__eq__ = self._make_overloaded_op(smt.Equals(), self, other)
-    #__ne__ = self._make_overloaded_op(smt.Not(), self == other)
-    #__add__ = self._make_overloaded_op(smt.Add(), self, other)
-    #__sub__ = self._make_overloaded_op(smt.Sub(), self, other)
-    #__lt__ = self._make_overloaded_op(smt.LT(), self, other)
-    #__le__ = self._make_overloaded_op(smt.LEQ(), self, other)
-    #__gt__ = self._make_overloaded_op(smt.GT(), self, other)
-    #__ge__ = self._make_overloaded_op(smt.GEQ(), self, other)
 
     def __eq__(self, other):
         return self._smt.apply_fun(self._smt.Equals, self, other)
@@ -81,7 +66,7 @@ class TermBase(metaclass=ABCMeta):
             return self._smt.apply_fun(self._smt.BVNeg, self)
         else:
             zero = self._smt.theory_const(self.sort, 0)
-            return self._smt.apply_fun(smt.Sub, zero, self)
+            return self._smt.apply_fun(self._smt.Sub, zero, self)
 
     def __lt__(self, other):
         return self._smt.apply_fun(self._smt.LT, self, other)
@@ -121,6 +106,22 @@ class TermBase(metaclass=ABCMeta):
             other = self._smt.theory_const(self.sort, other)
         return self._smt.apply_fun(self._smt.BVAshr, self, other)
 
+    def as_bitstring(self, width=None):
+        ''' Represent as bit string '''
+        # this uses child class's as_int, so it can be fully general
+        if self.sort.__class__ not in {self._smt.BitVec, self._smt.Int}:
+            raise ValueError('Term\'s sort cannot be represented as a bit string.')
+
+        i = self.as_int()
+
+        if width is None:
+            width = self.sort.width
+
+        if width < i.bit_length():
+            raise ValueError('Decimal {} will not fit in width = {} bits'.format(i, width))
+
+        return '{0:b}'.format(i).zfill(width)
+
 
 class CVC4Term(TermBase):
     def __init__(self, smt, op, solver_term, children):
@@ -128,6 +129,35 @@ class CVC4Term(TermBase):
 
     def __repr__(self):
         return self.solver_term.toString()
+
+    def as_int(self):
+        if self.sort == self._smt.Int():
+            return int(self._value.getConstRational().gteDouble())
+
+        elif self.sort.__class__ == self._smt.BitVec:
+            return self._value.getConstBitVector().toInteger().toUnsignedInt()
+
+        else:
+            raise ValueError('Mismatched sort for request')
+
+    def as_double(self):
+        if self.sort == self._smt.Real:
+            return self._value.getConstRational().getDouble()
+        else:
+            raise ValueError
+
+    def as_fraction(self):
+        if self.sort != self._smt.Real():
+            raise ValueError
+        r = self._value.getConstRational()
+        return Fraction(r.getNumerator().toSignedInt(),
+                        r.getDenominator().toSignedInt())
+
+    def as_bool(self):
+        if self.sort != self._smt.Bool():
+            raise ValueError
+
+        return self._value.getConstBoolean()
 
 
 class Z3Term(TermBase):
@@ -140,6 +170,21 @@ class Z3Term(TermBase):
         else:
             return self.solver_term.__repr__()
 
+    def as_int(self):
+        return self._value.as_long()
+
+    def as_double(self):
+        return float(self.value.as_fraction())
+
+    def as_fraction(self):
+        return self._value.as_fraction()
+
+    def as_bool(self):
+        if self.sort != self._smt.Bool():
+            raise ValueError
+
+        return bool(self._value)
+
 
 class BoolectorTerm(TermBase):
     def __init__(self, smt, op, solver_term, children):
@@ -151,3 +196,56 @@ class BoolectorTerm(TermBase):
 
     def __str__(self):
         return self.solver_term.symbol
+
+    def as_int(self):
+        return int(self._value.assignment, base=2)
+
+    def as_bool(self):
+        if self._value.width != 1:
+            raise ValueError("Can't interpret BitVec of width > 1 as a bool")
+
+        return bool(self._value.assignment)
+
+
+
+
+def __bool_fun(*args):
+    return sorts.Bool()
+
+
+fun2sort = {'And': __bool_fun,
+            'Or': __bool_fun,
+            'No_op': sorts.get_sort,
+            'Equals': __bool_fun,
+            'Not': __bool_fun,
+            'LT': __bool_fun,
+            'GT': __bool_fun,
+            'LEQ': __bool_fun,
+            'GEQ': __bool_fun,
+            'BVUlt': __bool_fun,
+            'BVUle': __bool_fun,
+            'BVUgt': __bool_fun,
+            'BVUge': __bool_fun,
+            'BVSlt': __bool_fun,
+            'BVSle': __bool_fun,
+            'BVSgt': __bool_fun,
+            'BVSge': __bool_fun,
+            'BVNot': sorts.get_sort,
+            'BVNeg': sorts.get_sort,
+            'Ite': lambda *args: sorts.get_sort(*args[1:]),
+            'Sub': sorts.get_sort,
+            'Add': sorts.get_sort,
+            'Extract': lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
+            'Concat': lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
+            'Zero_extend': lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
+            'BVAnd': sorts.get_sort,
+            'BVOr': sorts.get_sort,
+            'BVXor': sorts.get_sort,
+            'BVAdd': sorts.get_sort,
+            'BVSub': sorts.get_sort,
+            'BVMul': sorts.get_sort,
+            'BVUdiv': sorts.get_sort,
+            'BVUrem': sorts.get_sort,
+            'BVShl': sorts.get_sort,
+            'BVAshr': sorts.get_sort,
+            'BVLshr': sorts.get_sort}

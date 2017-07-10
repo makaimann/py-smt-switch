@@ -135,7 +135,7 @@ class operator:
 
 
 # generators
-def __gen_operator(smt, fun, fdata, *args, **kwargs):
+def __op_eval(smt, fun, fdata, *args, **kwargs):
     '''
        Takes a function creates an operator for it. All functions are instantiated as an operator
        If the function is not an indexed operator, then it just has no args
@@ -206,7 +206,7 @@ def __gen_operator(smt, fun, fdata, *args, **kwargs):
                                      fdata.num_indices + fdata.min_arity, len(args)))
 
 
-def __gen_function(smt, name, fdata):
+def __gen_operator(smt, name, fdata):
 
     '''
        Generates functions based on the dictionary funcs with the namedtuple
@@ -214,7 +214,7 @@ def __gen_function(smt, name, fdata):
     '''
 
     def func(*args):
-        return __gen_operator(smt, func, fdata, *args)
+        return __op_eval(smt, func, fdata, *args)
 
     func.__name__ = name
 

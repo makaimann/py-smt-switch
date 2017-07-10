@@ -37,7 +37,7 @@ def set_solver(solver_name):
 
 # add functions to namespace and to __all__
 for name, m in functions.func_symbols.items():
-    f = functions.__gen_function(__smtmodule, name, m)
+    f = functions.__gen_operator(__smtmodule, name, m)
     __smtmodule.__dict__[name] = f
     __all__.append(name)
 
@@ -59,33 +59,45 @@ for s in sorts.__all__:
 def add(c):
     ''' Alias for Assert '''
     global _solver
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     _solver.add(c)
 
 
 def reset(self):
     global _solver
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     _solver.reset()
 
 
 def check_sat():
     global _solver
     global sat
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     sat = _solver.check_sat()
     return sat
 
 
 def set_logic(logicstr):
     global _solver
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     _solver.set_logic(logicstr)
 
 
 def set_option(optionstr, value):
     global _solver
-    _solver.set_logic(optionstr, value)
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
+    _solver.set_option(optionstr, value)
 
 
 def declare_const(name, sort):
     global _solver
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     sconst = _solver.declare_const(name, sort)
     return __term_map[_solver.__class__](__smtmodule,
                                         No_op,
@@ -95,6 +107,8 @@ def declare_const(name, sort):
 
 def theory_const(sort, value):
     global _solver
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
     stconst = _solver.theory_const(sort, value)
     return __term_map[_solver.__class__](__smtmodule,
                                         No_op,
@@ -104,6 +118,10 @@ def theory_const(sort, value):
 
 def apply_fun(fun, *args):
     global _solver
+
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
+
     # handle lists of arguments
     if isinstance(args[0], Sequence):
         args = tuple(args[0])
@@ -129,6 +147,10 @@ def apply_fun(fun, *args):
 
 def Assert(constraints):
     global _solver
+
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
+
     if isinstance(constraints[0], Sequence):
         constraints = tuple(constraints[0])
 
@@ -147,18 +169,20 @@ def Assert(constraints):
 
 def assertions():
     global _solver
+
+    if _solver is None:
+        raise ValueError('Please set a solver before using a solver function')
+
     return _solver.assertions()
 
 
-def get_model(self):
+def get_model():
     raise NotImplementedError()
 
 
-def get_value(self, var):
-    raise NotImplementedError('Deprecating results so waiting to just '
-                              'do get value correctly with terms')
-
-
+def get_value(var):
+    var._value = _solver.get_value(var.solver_term)
+    return var
 
 
 def _bool_fun(*args):

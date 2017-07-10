@@ -1,13 +1,12 @@
 import pytest
+from smt_switch import smt
 from smt_switch.config import config
-from smt_switch import sorts, functions
 from smt_switch.tests import bv_solvers
 
 
-And = functions.And
-Or = functions.Or
-Ite = functions.Ite
-Equals = functions.Equals
+Equals = smt.Equals
+bvuge = smt.BVUge
+And = smt.And
 
 
 def test_bv_ops():
@@ -15,39 +14,36 @@ def test_bv_ops():
        bitvector example using overloaded operators
     '''
 
-    # instantiate useful functions
-    bvuge = functions.BVUge
+    for name in bv_solvers:
+        smt.set_solver(name)
+        smt.set_logic('QF_BV')
+        smt.set_option('produce-models', 'true')
 
-    for name, solver in bv_solvers.items():
-        s = solver()
-        s.set_logic('QF_BV')
-        s.set_option('produce-models', 'true')
+        bv8 = smt.BitVec(8)
 
-        bv8 = sorts.BitVec(8)
-
-        bv1 = s.declare_const('bv1', bv8)
-        bv2 = s.declare_const('bv2', sorts.BitVec(8))
+        bv1 = smt.declare_const('bv1', bv8)
+        bv2 = smt.declare_const('bv2', smt.BitVec(8))
 
         c = [bvuge(bv1, 1)]
 
         bvs = [bv1, bv2]
 
         for i in range(3, 11):
-            bvs.append(s.declare_const('bv{}'.format(i), bv8))
+            bvs.append(smt.declare_const('bv{}'.format(i), bv8))
 
         for b1, b2, b3 in zip(bvs, bvs[1:], bvs[2:]):
             c.append(b1 + b2 == b3)
 
-        s.Assert(And(c))
+        smt.Assert(And(c))
 
-        s.Assert(((bvs[9] << 4) >> 4) == bvs[6])
-        s.Assert(bvs[5] == 3)
-        s.Assert(bvs[8] - 6 == 7)
+        smt.Assert(((bvs[9] << 4) >> 4) == bvs[6])
+        smt.Assert(bvs[5] == 3)
+        smt.Assert(bvs[8] - 6 == 7)
 
-        r = s.check_sat()
+        r = smt.check_sat()
         assert r
 
-        bvvals = [s.get_value(bv).as_int() for bv in bvs]
+        bvvals = [smt.get_value(bv).as_int() for bv in bvs]
 
         for b1, b2, b3 in zip(bvvals, bvvals[1:], bvvals[2:]):
             assert b1 + b2 == b3
@@ -61,40 +57,40 @@ def test_bv_extract():
     config.strict = False
 
     # create bitvector type of width 32
-    bvsort = sorts.construct_sort(sorts.BitVec, 32)
+    bvsort = smt.construct_sort(smt.BitVec, 32)
 
-    for name, solver in bv_solvers.items():
-        s = solver()
-        s.set_logic('QF_BV')
+    for name in bv_solvers:
+        smt.set_solver(name)
+        smt.set_logic('QF_BV')
 
-        x = s.declare_const('x', bvsort)
+        x = smt.declare_const('x', bvsort)
 
-        ext_31_1 = functions.construct_fun(functions.Extract, 31, 1)
+        ext_31_1 = smt.construct_fun(smt.Extract, 31, 1)
         x_31_1 = ext_31_1(x)
 
-        ext_30_0 = functions.construct_fun(functions.Extract, 30, 0)
+        ext_30_0 = smt.construct_fun(smt.Extract, 30, 0)
         x_30_0 = ext_30_0(x)
 
-        x_31_31 = functions.Extract(31, 31, x)
+        x_31_31 = smt.Extract(31, 31, x)
 
-        x_0_0 = functions.Extract(0, 0, x)
+        x_0_0 = smt.Extract(0, 0, x)
 
         assert x_31_1.sort == x_30_0.sort
         assert x_31_31.sort == x_0_0.sort
 
-        assert x_31_1.op == functions.Extract(31, 1)
+        assert x_31_1.op == smt.Extract(31, 1)
 
-        assert x_31_1.sort == sorts.BitVec(31)
+        assert x_31_1.sort == smt.BitVec(31)
 
         print('Asserting x_31_1 == x_30_0')
-        s.Assert(x_31_1 == x_30_0)
+        smt.Assert(x_31_1 == x_30_0)
 
         eq2 = x_31_31 == x_0_0
-        s.Assert(eq2)
+        smt.Assert(eq2)
 
-        s.check_sat()
+        smt.check_sat()
 
-        assert s.sat  # in fact it's actually valid
+        assert smt.sat  # in fact it's actually valid
 
 
 def test_bv_boolops():
@@ -110,40 +106,40 @@ def test_bv_boolops():
     '''
     config.strict = False
     
-    bvand = functions.BVAnd
-    bvor = functions.BVOr
-    bvnot = functions.BVNot
+    bvand = smt.BVAnd
+    bvor = smt.BVOr
+    bvnot = smt.BVNot
 
-    bvsort = sorts.BitVec(8)
+    bvsort = smt.BitVec(8)
 
-    for name, solver in bv_solvers.items():
-        s = solver()
-        s.set_logic('QF_BV')
-        s.set_option('produce-models', 'true')
+    for name in bv_solvers:
+        smt.set_solver(name)
+        smt.set_logic('QF_BV')
+        smt.set_option('produce-models', 'true')
         
-        bv1 = s.declare_const('bv1', bvsort)
-        bv2 = s.declare_const('bv2', bvsort)
-        bv3 = s.declare_const('bv3', bvsort)
+        bv1 = smt.declare_const('bv1', bvsort)
+        bv2 = smt.declare_const('bv2', bvsort)
+        bv3 = smt.declare_const('bv3', bvsort)
 
         bvresult = bvand(bv1, bv2)
         bvresult2 = bvor(bv2, bv3)
         bvnotresult = bvnot(bv3)
 
-        assert bvresult2.sort == sorts.BitVec(8)
+        assert bvresult2.sort == smt.BitVec(8)
         assert bvresult2.op == bvor
 
         # Assert formulas
-        s.Assert(bv1 == 15)
-        s.Assert(bv2 == 240)
-        s.Assert(bv3 == 85)
-        
+        smt.Assert(bv1 == 15)
+        smt.Assert(bv2 == 240)
+        smt.Assert(bv3 == 85)
+
         # check satisfiability
-        s.check_sat()
+        smt.check_sat()
 
         # now query for the values
-        bvr1 = s.get_value(bvresult)
-        bvr2 = s.get_value(bvresult2)
-        bvnr = s.get_value(bvnotresult)
+        bvr1 = smt.get_value(bvresult)
+        bvr2 = smt.get_value(bvresult2)
+        bvnr = smt.get_value(bvnotresult)
 
         # make assertions about values
         # still figuring out how to get z3 and boolector to print smt-lib format for results
@@ -167,37 +163,35 @@ def test_bv_arithops():
           bv3 >> 1
     '''
     config.strict = False
-    
-    bvadd = functions.BVAdd
-    bvmul = functions.BVMul
-    bvlshr = functions.BVLshr
 
-    bvsort = sorts.BitVec(4)
+    bvmul = smt.BVMul
 
-    for name, solver in bv_solvers.items():
-        s = solver()
-        s.set_logic('QF_BV')
-        s.set_option('produce-models', 'true')
+    bvsort = smt.BitVec(4)
+
+    for name in bv_solvers:
+        smt.set_solver(name)
+        smt.set_logic('QF_BV')
+        smt.set_option('produce-models', 'true')
         
-        bv1 = s.declare_const('bv1', bvsort)
-        bv2 = s.declare_const('bv2', bvsort)
-        bv3 = s.declare_const('bv3', bvsort)
+        bv1 = smt.declare_const('bv1', bvsort)
+        bv2 = smt.declare_const('bv2', bvsort)
+        bv3 = smt.declare_const('bv3', bvsort)
 
         bvsum = bv1 + bv2
         bvprod = bvmul(bv2, bv3)
         bvshifted = bv3 >> 1
 
-        #make assertions
-        s.Assert(bv1 == 1)
-        s.Assert(bv2 == 2)
-        s.Assert(bv3 == 5)
+        # make assertions
+        smt.Assert(bv1 == 1)
+        smt.Assert(bv2 == 2)
+        smt.Assert(bv3 == 5)
 
         # check satisfiability
-        s.check_sat()
+        smt.check_sat()
 
-        bvsumr = s.get_value(bvsum)
-        bvprodr = s.get_value(bvprod)
-        bvshiftedr = s.get_value(bvshifted)
+        bvsumr = smt.get_value(bvsum)
+        bvprodr = smt.get_value(bvprod)
+        bvshiftedr = smt.get_value(bvshifted)
 
         # still figuring out how to get z3 and boolector to print smt-lib format for results
         # assert bvsumr.__repr__() == '3' or bvsumr.__repr__() == '0bin0011'
