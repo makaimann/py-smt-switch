@@ -7,9 +7,8 @@ from . import terms
 from . import results
 from . import solvers
 from ..config import config
-from .smtutils import operator
 
-__all__ = []
+__all__ = ['And', 'Or']
 
 _solver = None
 __solver_cache = {'CVC4': None,
@@ -36,134 +35,11 @@ def set_solver(solver_name):
     _solver = __solver_cache[solver_name]
 
 
-def __gen_operator(fun, fdata, *args, **kwargs):
-    '''
-       Takes a function creates an operator for it. All functions are instantiated as an operator
-       If the function is not an indexed operator, then it just has no args
-
-       i.e. bvult is  <operator: bvult () {}>  <-- operator with no args
-
-       The operators are callable, and can be used by solver.apply_fun(operator, *args)
-    '''
-
-    # expand out args if list
-    if args and isinstance(args[0], list):
-        args = args[0]
-
-    # if args:
-    #     # Not pretty but trying to avoid circular dependency
-    #     s_terms = list(filter(lambda arg: 'TermBase' in
-    #                           [base.__name__ for base in arg.__class__.__bases__], args))
-
-    if fun.__class__ == operator:
-        # TODO: Also allow keyword arguments -- not urgent
-
-        # if already an operator, then all indices should be assigned
-        assert len(fun.args) == fdata.num_indices
-
-        if len(args) > fdata.min_arity:
-
-            if config.strict and len(args) > fdata.max_arity:
-                raise ValueError('In strict mode and received {} args when max arity = '
-                                 .format(len(args), fdata.max_arity))
-
-            return apply_fun(fun, *args, **kwargs)
-
-        else:
-            return operator(fun.func, *args, **kwargs)
-
-    elif len(args) == fdata.num_indices or len(args) == 0:
-        return operator(fun, *args, **kwargs)
-
-    elif len(args) >= fdata.num_indices + fdata.min_arity:
-
-        if config.strict and len(args) > fdata.max_arity:
-            raise ValueError('In strict mode and received {} args when max arity = '
-                             .format(len(args), fdata.max_arity))
-
-        # always pass a partial function with the minumum number of arguments
-        # this is for CVC4 to construct the function
-        return apply_fun(operator(fun, *args[:fdata.num_indices]),
-                         *args[fdata.num_indices:], **kwargs)
-
-    else:
-        if fdata.num_indices == 0:
-            # non-indexed operator
-            raise ValueError('Expected {} inputs to operator but received {}'
-                             .format(fdata.min_arity, len(args)))
-        else:
-            raise ValueError('Expected {} or {} inputs to operator but received {}'
-                             .format(fdata.num_indices,
-                                     fdata.num_indices + fdata.min_arity, len(args)))
-
-
-def __gen_function(name, fdata):
-
-    '''
-       Generates functions based on the dictionary funcs with the namedtuple
-       fdata which contains num_indices, min_arity and max_arity
-    '''
-
-    def func(*args):
-        func.__name__ = name
-        return __gen_operator(func, fdata, *args)
-
-    if fdata.num_indices < 0:
-        raise ValueError('Invalid expected num_indices in operator {}'.format(name))
-
-    # calls __gen_operator(func, fdata) with no args
-    # just convenient so that all functions are wrapped
-    # by operator class
-    return func()
-
-
 # add functions to namespace and to __all__
-namespace = sys._getframe(0).f_globals
 for name, m in functions.func_symbols.items():
-    f = __gen_function(name, m)
-    namespace[name] = f
+    f = functions.__gen_function(__smtmodule, name, m)
+    __smtmodule.__dict__[name] = f
     __all__.append(name)
-
-
-# special definitions for And/Or
-# this is just to support the And([]) --> True case
-
-def _And(*args):
-    if config.strict:
-        return __gen_operator(_And, functions.fdata(0, 2, sys.maxsize), *args)
-    else:
-        if args and isinstance(args[0], list):
-            if not args[0]:
-                return True
-
-            args = args[0]
-
-        if len(args) == 1:
-            return args[0]
-
-        else:
-            return __gen_operator(_And, functions.fdata(0, 1, sys.maxsize), *args)
-
-
-def _Or(*args):
-    if config.strict:
-        return __gen_operator(_Or, functions.fdata(0, 2, sys.maxsize), *args)
-    else:
-        if args and isinstance(args[0], list):
-            if not args[0]:
-                return False
-
-            args = args[0]
-
-        if len(args) == 1:
-            return args[0]
-        else:
-            return __gen_operator(_Or, functions.fdata(0, 1, sys.maxsize), *args)
-
-
-# make them operators
-And = __gen_operator(_And, functions.fdata(0, 1, sys.maxsize))
-Or = __gen_operator(_Or, functions.fdata(0, 1, sys.maxsize))
 
 
 # construct a function in strict mode
