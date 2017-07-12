@@ -5,44 +5,34 @@ class SolverBase(metaclass=ABCMeta):
     @abstractmethod
     def __init__(self):
         self.constraints = []
-        self.sat = None
-
-    def add(self, c):
-        ''' Alias for Assert '''
-        self.Assert(c)
+        self.Sat = None
 
     @abstractmethod
-    def reset(self):
+    def Reset(self):
         pass
 
     @abstractmethod
-    def check_sat(self):
+    def CheckSat(self):
         pass
 
     @abstractmethod
-    def set_logic(self, logicstr):
+    def SetLogic(self, logicstr):
         pass
 
     @abstractmethod
-    def set_option(self, optionstr, value):
-        pass
-
-    # right now this doesn't do anything different than set_option in CVC4 implementation
-    # because not doing any checks on optionstr in set_option yet
-    @abstractmethod
-    def set_nonstandard_option(self, optionstr, value):
+    def SetOption(self, optionstr, value):
         pass
 
     @abstractmethod
-    def declare_const(self, name, sort):
+    def DeclareConst(self, name, sort):
         pass
 
     @abstractmethod
-    def theory_const(self, sort, value):
+    def TheoryConst(self, sort, value):
         pass
 
     @abstractmethod
-    def apply_fun(self, fun, *args):
+    def ApplyFun(self, fun, *args):
         pass
 
     @abstractmethod
@@ -50,13 +40,13 @@ class SolverBase(metaclass=ABCMeta):
         return cls.Assert(*pargs, **kwargs)
 
     @abstractproperty
-    def assertions(self):
+    def Assertions(self):
         pass
 
     @abstractmethod
-    def get_model(self):
+    def GetModel(self):
         pass
 
     @abstractmethod
-    def get_value(self, var):
+    def GetValue(self, var):
         pass

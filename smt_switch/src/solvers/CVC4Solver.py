@@ -1,4 +1,5 @@
 from .. import sorts
+from ..functions import func_enum
 from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
@@ -26,41 +27,41 @@ class CVC4Solver(SolverBase):
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
 
-        self._CVC4Funs = {'Extract': self.CVC4.BitVectorExtract,
-                          'Concat': self.CVC4.BITVECTOR_CONCAT,
-                          'Zero_extend': self.CVC4.BITVECTOR_ZERO_EXTEND,
-                          'Equals': self.CVC4.EQUAL,
-                          'Not': self.CVC4.NOT,
-                          'And': self.CVC4.AND,
-                          'Or': self.CVC4.OR,
-                          'Ite': self.CVC4.ITE,
-                          'Sub': self.CVC4.MINUS,
-                          'Add': self.CVC4.PLUS,
-                          'LT': self.CVC4.LT,
-                          'LEQ': self.CVC4.LEQ,
-                          'GT': self.CVC4.GT,
-                          'GEQ': self.CVC4.GEQ,
-                          'BVAnd': self.CVC4.BITVECTOR_AND,
-                          'BVOr': self.CVC4.BITVECTOR_OR,
-                          'BVXor': self.CVC4.BITVECTOR_XOR,
-                          'BVAdd': self.CVC4.BITVECTOR_PLUS,
-                          'BVSub': self.CVC4.BITVECTOR_SUB,
-                          'BVMul': self.CVC4.BITVECTOR_MULT,
-                          'BVUdiv': self.CVC4.BITVECTOR_UDIV,
-                          'BVUrem': self.CVC4.BITVECTOR_UREM,
-                          'BVShl': self.CVC4.BITVECTOR_SHL,
-                          'BVAshr': self.CVC4.BITVECTOR_ASHR,
-                          'BVLshr': self.CVC4.BITVECTOR_LSHR,
-                          'BVUlt': self.CVC4.BITVECTOR_ULT,
-                          'BVUle': self.CVC4.BITVECTOR_ULE,
-                          'BVUgt': self.CVC4.BITVECTOR_UGT,
-                          'BVUge': self.CVC4.BITVECTOR_UGE,
-                          'BVSlt': self.CVC4.BITVECTOR_SLT,
-                          'BVSle': self.CVC4.BITVECTOR_SLE,
-                          'BVSgt': self.CVC4.BITVECTOR_SGT,
-                          'BVSge': self.CVC4.BITVECTOR_SGE,
-                          'BVNot': self.CVC4.BITVECTOR_NOT,
-                          'BVNeg': self.CVC4.BITVECTOR_NEG}
+        self._CVC4Funs = {func_enum.Extract: self.CVC4.BitVectorExtract,
+                          func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
+                          func_enum.Zero_extend: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          func_enum.Equals: self.CVC4.EQUAL,
+                          func_enum.Not: self.CVC4.NOT,
+                          func_enum.And: self.CVC4.AND,
+                          func_enum.Or: self.CVC4.OR,
+                          func_enum.Ite: self.CVC4.ITE,
+                          func_enum.Sub: self.CVC4.MINUS,
+                          func_enum.Add: self.CVC4.PLUS,
+                          func_enum.LT: self.CVC4.LT,
+                          func_enum.LEQ: self.CVC4.LEQ,
+                          func_enum.GT: self.CVC4.GT,
+                          func_enum.GEQ: self.CVC4.GEQ,
+                          func_enum.BVAnd: self.CVC4.BITVECTOR_AND,
+                          func_enum.BVOr: self.CVC4.BITVECTOR_OR,
+                          func_enum.BVXor: self.CVC4.BITVECTOR_XOR,
+                          func_enum.BVAdd: self.CVC4.BITVECTOR_PLUS,
+                          func_enum.BVSub: self.CVC4.BITVECTOR_SUB,
+                          func_enum.BVMul: self.CVC4.BITVECTOR_MULT,
+                          func_enum.BVUdiv: self.CVC4.BITVECTOR_UDIV,
+                          func_enum.BVUrem: self.CVC4.BITVECTOR_UREM,
+                          func_enum.BVShl: self.CVC4.BITVECTOR_SHL,
+                          func_enum.BVAshr: self.CVC4.BITVECTOR_ASHR,
+                          func_enum.BVLshr: self.CVC4.BITVECTOR_LSHR,
+                          func_enum.BVUlt: self.CVC4.BITVECTOR_ULT,
+                          func_enum.BVUle: self.CVC4.BITVECTOR_ULE,
+                          func_enum.BVUgt: self.CVC4.BITVECTOR_UGT,
+                          func_enum.BVUge: self.CVC4.BITVECTOR_UGE,
+                          func_enum.BVSlt: self.CVC4.BITVECTOR_SLT,
+                          func_enum.BVSle: self.CVC4.BITVECTOR_SLE,
+                          func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
+                          func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
+                          func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
+                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -82,60 +83,39 @@ class CVC4Solver(SolverBase):
                             sorts.Real: create_real,
                             sorts.Bool: create_bool}
 
-    def reset(self):
-        self._smt.reset()
+    def Reset(self):
+        self._smt.Reset()
 
-    def check_sat(self):
+    def CheckSat(self):
         # rely on Assert for now
-        # chose this way so user can get assertions, but also aren't added twice
+        # chose this way so user can get Assertions, but also aren't added twice
         # for constraint in self.constraints:
         #    self._smt.assertFormula(constraint)
-        self.sat = self._smt.checkSat().isSat() == 1
-        return self.sat
+        self.Sat = self._smt.checkSat().isSat() == 1
+        return self.Sat
 
-    def set_logic(self, logicstr):
+    def SetLogic(self, logicstr):
         self._smt.setLogic(logicstr)
 
     # TODO: Need to make this more general.
     # I don't think we always create an SExpr from the value...
     # Also need to check if optionstr is a standard option
-    def set_option(self, optionstr, value):
+    def SetOption(self, optionstr, value):
         self._smt.setOption(optionstr, self.CVC4.SExpr(value))
 
-    # Note: currently not different than set_option
-    def set_nonstandard_option(self, optionstr, value):
-        self._smt.setOption(optionstr, self.CVC4.SExpr(value))
-
-    def declare_const(self, name, sort):
+    def DeclareConst(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
         return cvc4const
 
-    def theory_const(self, sort, value):
+    def TheoryConst(self, sort, value):
         cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
         return cvc4tconst
 
     # if config strict, check arity and don't allow python objects as arguments
-    def apply_fun(self, fname, indices, *args):
+    def ApplyFun(self, f_enum, indices, *args):
 
-        # commented out while updating functions
-        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-        #     raise ValueError('In strict mode you must respect function arity:' +
-        #                      ' {}: arity = {}'.format(fun, fun.arity))
-
-        cvc4fun = self._CVC4Funs[fname]
-
-        # if config.strict:
-        #     solver_args = [arg.solver_term for arg in args]
-        # else:
-        #     # find a cvc4 term to infer the sort
-        #     # TODO: make this more robust
-        #     cvc4term = list(filter(lambda x: isinstance(x, terms.CVC4Term), args))[-1]
-        #     solver_args = tuple(map(lambda arg: arg.solver_term
-        #                             if isinstance(arg, terms.CVC4Term)
-        #                             else
-        #                             self.theory_const(cvc4term.sort, arg).solver_term,
-        #                             args))
+        cvc4fun = self._CVC4Funs[f_enum]
 
         # check if just indexer or needs to be evaluated
         # TODO: handle situation where all args together
@@ -147,24 +127,24 @@ class CVC4Solver(SolverBase):
     def Assert(self, c):
             self._smt.assertFormula(c)
 
-    def assertions(self):
+    def Assertions(self):
         # TODO: fix iter error
         # Wanted these to be an iter but CVC4 threw an exception
         return [expr.toString() for expr in self._smt.getAssertions()]
 
-    def get_model(self):
-        if self.sat:
+    def GetModel(self):
+        if self.Sat:
             # TODO: Fix this
             return self._smt.getValue
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
 
-    def get_value(self, var):
-        if self.sat:
+    def GetValue(self, var):
+        if self.Sat:
             return self._smt.getValue(var)
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')

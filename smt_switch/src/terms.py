@@ -2,6 +2,7 @@ from abc import ABCMeta
 from . import sorts
 from ..config import config
 from fractions import Fraction
+from .functions import func_enum
 
 
 class TermBase(metaclass=ABCMeta):
@@ -24,7 +25,7 @@ class TermBase(metaclass=ABCMeta):
             self._children = []
 
         # Note: for now, fun is always a partial function
-        self._sort = fun2sort[op.fname](*(op.args + tuple(children)))
+        self._sort = fun2sort[op.enum](*(op.args + tuple(children)))
 
     @property
     def children(self):
@@ -43,70 +44,70 @@ class TermBase(metaclass=ABCMeta):
         return self._solver_term
 
     def __eq__(self, other):
-        return self._smt.apply_fun(self._smt.Equals, self, other)
+        return self._smt.ApplyFun(self._smt.Equals, self, other)
 
     def __ne__(self, other):
-        return self._smt.apply_fun(self._smt.Not, self == other)
+        return self._smt.ApplyFun(self._smt.Not, self == other)
 
     def __add__(self, other):
         if self.sort.__class__ == sorts.BitVec:
-            return self._smt.apply_fun(self._smt.BVAdd, self, other)
+            return self._smt.ApplyFun(self._smt.BVAdd, self, other)
         else:
-            return self._smt.apply_fun(self._smt.Add, self, other)
+            return self._smt.ApplyFun(self._smt.Add, self, other)
 
     def __sub__(self, other):
         # override for bitvectors
         if self.sort.__class__ == sorts.BitVec:
-            return self._smt.apply_fun(self._smt.BVSub, self, other)
+            return self._smt.ApplyFun(self._smt.BVSub, self, other)
         else:
-            return self._smt.apply_fun(self._smt.Sub, self, other)
+            return self._smt.ApplyFun(self._smt.Sub, self, other)
 
     def __neg__(self):
         if self.sort.__class__ == sorts.BitVec:
-            return self._smt.apply_fun(self._smt.BVNeg, self)
+            return self._smt.ApplyFun(self._smt.BVNeg, self)
         else:
-            zero = self._smt.theory_const(self.sort, 0)
-            return self._smt.apply_fun(self._smt.Sub, zero, self)
+            zero = self._smt.TheoryConst(self.sort, 0)
+            return self._smt.ApplyFun(self._smt.Sub, zero, self)
 
     def __lt__(self, other):
-        return self._smt.apply_fun(self._smt.LT, self, other)
+        return self._smt.ApplyFun(self._smt.LT, self, other)
 
     def __le__(self, other):
-        return self._smt.apply_fun(self._smt.LEQ, self, other)
+        return self._smt.ApplyFun(self._smt.LEQ, self, other)
 
     def __gt__(self, other):
-        return self._smt.apply_fun(self._smt.GT, self, other)
+        return self._smt.ApplyFun(self._smt.GT, self, other)
 
     def __ge__(self, other):
-        return self._smt.apply_fun(self._smt.GEQ, self, other)
+        return self._smt.ApplyFun(self._smt.GEQ, self, other)
 
     # bit operations
     def __and__(self, other):
         if not issubclass(other.__class__, TermBase):
-            other = self._smt.theory_const(self.sort, other)
-        return self._smt.apply_fun(self._smt.BVAnd, self, other)
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVAnd, self, other)
 
     def __or__(self, other):
         if not issubclass(other.__class__, TermBase):
-            other = self._smt.theory_const(self.sort, other)
-        return self._smt.apply_fun(self._smt.BVOr, self, other)
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVOr, self, other)
 
     def __xor__(self, other):
         if not issubclass(other.__class__, TermBase):
-            other = self._smt.theory_const(self.sort, other)
-        return self._smt.apply_fun(self._smt.BVXor, self, other)
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVXor, self, other)
 
     def __lshift__(self, other):
         if not issubclass(other.__class__, TermBase):
-            other = self._smt.theory_const(self.sort, other)
-        return self._smt.apply_fun(self._smt.BVShl, self, other)
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVShl, self, other)
 
     def __rshift__(self, other):
         if not issubclass(other.__class__, TermBase):
-            other = self._smt.theory_const(self.sort, other)
-        return self._smt.apply_fun(self._smt.BVAshr, self, other)
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVAshr, self, other)
 
-    def as_bitstring(self, width=None):
+    def as_bitstr(self, width=None):
         ''' Represent as bit string '''
         # this uses child class's as_int, so it can be fully general
         if self.sort.__class__ not in {self._smt.BitVec, self._smt.Int}:
@@ -213,39 +214,39 @@ def __bool_fun(*args):
     return sorts.Bool()
 
 
-fun2sort = {'And': __bool_fun,
-            'Or': __bool_fun,
-            'No_op': sorts.get_sort,
-            'Equals': __bool_fun,
-            'Not': __bool_fun,
-            'LT': __bool_fun,
-            'GT': __bool_fun,
-            'LEQ': __bool_fun,
-            'GEQ': __bool_fun,
-            'BVUlt': __bool_fun,
-            'BVUle': __bool_fun,
-            'BVUgt': __bool_fun,
-            'BVUge': __bool_fun,
-            'BVSlt': __bool_fun,
-            'BVSle': __bool_fun,
-            'BVSgt': __bool_fun,
-            'BVSge': __bool_fun,
-            'BVNot': sorts.get_sort,
-            'BVNeg': sorts.get_sort,
-            'Ite': lambda *args: sorts.get_sort(*args[1:]),
-            'Sub': sorts.get_sort,
-            'Add': sorts.get_sort,
-            'Extract': lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
-            'Concat': lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
-            'Zero_extend': lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
-            'BVAnd': sorts.get_sort,
-            'BVOr': sorts.get_sort,
-            'BVXor': sorts.get_sort,
-            'BVAdd': sorts.get_sort,
-            'BVSub': sorts.get_sort,
-            'BVMul': sorts.get_sort,
-            'BVUdiv': sorts.get_sort,
-            'BVUrem': sorts.get_sort,
-            'BVShl': sorts.get_sort,
-            'BVAshr': sorts.get_sort,
-            'BVLshr': sorts.get_sort}
+fun2sort = {func_enum.And: __bool_fun,
+            func_enum.Or: __bool_fun,
+            func_enum.No_op: sorts.get_sort,
+            func_enum.Equals: __bool_fun,
+            func_enum.Not: __bool_fun,
+            func_enum.LT: __bool_fun,
+            func_enum.GT: __bool_fun,
+            func_enum.LEQ: __bool_fun,
+            func_enum.GEQ: __bool_fun,
+            func_enum.BVUlt: __bool_fun,
+            func_enum.BVUle: __bool_fun,
+            func_enum.BVUgt: __bool_fun,
+            func_enum.BVUge: __bool_fun,
+            func_enum.BVSlt: __bool_fun,
+            func_enum.BVSle: __bool_fun,
+            func_enum.BVSgt: __bool_fun,
+            func_enum.BVSge: __bool_fun,
+            func_enum.BVNot: sorts.get_sort,
+            func_enum.BVNeg: sorts.get_sort,
+            func_enum.Ite: lambda *args: sorts.get_sort(*args[1:]),
+            func_enum.Sub: sorts.get_sort,
+            func_enum.Add: sorts.get_sort,
+            func_enum.Extract: lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
+            func_enum.Concat: lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
+            func_enum.Zero_extend: lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
+            func_enum.BVAnd: sorts.get_sort,
+            func_enum.BVOr: sorts.get_sort,
+            func_enum.BVXor: sorts.get_sort,
+            func_enum.BVAdd: sorts.get_sort,
+            func_enum.BVSub: sorts.get_sort,
+            func_enum.BVMul: sorts.get_sort,
+            func_enum.BVUdiv: sorts.get_sort,
+            func_enum.BVUrem: sorts.get_sort,
+            func_enum.BVShl: sorts.get_sort,
+            func_enum.BVAshr: sorts.get_sort,
+            func_enum.BVLshr: sorts.get_sort}

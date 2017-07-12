@@ -9,19 +9,19 @@ from smt_switch import solvers
 s = solvers.CVC4Solver()
 
 # Set logic
-s.set_logic('QF_BV')
+s.SetLogic('QF_BV')
 
 # Set options
-s.set_option('produce-models', 'true')
-s.set_option('produce-assertions', 'true')
+s.SetOption('produce-models', 'true')
+s.SetOption('produce-Assertions', 'true')
 
 # Get a bit vector symbol
 bvsym1 = sorts.BitVec
 # Create a bit vector sort -- still solver-independent at this point
-bvsort1 = sorts.construct_sort(bvsym1, 4)
+bvsort1 = sorts.ConstructSort(bvsym1, 4)
 
 # Demonstrate an alternative way of creating a sort
-bvsort2 = sorts.construct_sort('BitVec', 4)
+bvsort2 = sorts.ConstructSort('BitVec', 4)
 
 # Demonstrate a third option
 # sorts.BitVec is a class that we can instantiate directly
@@ -35,8 +35,8 @@ print('bvsort1 == bvsort2: ',
       bvsort1 == bvsort2)
 
 # Declare variables -- this returns a z3/cvc4 term depending on the solver used
-bv1 = s.declare_const('bv1', bvsort1)
-bv2 = s.declare_const('bv2', bvsort2)
+bv1 = s.DeclareConst('bv1', bvsort1)
+bv2 = s.DeclareConst('bv2', bvsort2)
 
 # Now create functions
 esym = functions.extract
@@ -44,8 +44,8 @@ efun32 = functions.declare_fun(esym, 3, 2)
 efun10 = functions.declare_fun(esym, 1, 0)
 
 # Demonstrate function use
-subbv1_32 = s.apply_fun(efun32, bv1)
-subbv2_32 = s.apply_fun(efun32, bv2)
+subbv1_32 = s.ApplyFun(efun32, bv1)
+subbv2_32 = s.ApplyFun(efun32, bv2)
 
 # The functions are also callable directly
 subbv1_10 = efun10(bv1)
@@ -83,22 +83,22 @@ print('Children:', both.children)
 s.Assert(both)
 
 # Create another constraint
-two = s.theory_const(bvsort1, 2)
-bv1eq2 = s.apply_fun(eqfun, bv1, two)
+two = s.TheoryConst(bvsort1, 2)
+bv1eq2 = s.ApplyFun(eqfun, bv1, two)
 
 s.Assert(bv1eq2)
 
 # Check sat
-s.check_sat()
+s.CheckSat()
 
-# Display assertions
-print('Solving with the following assertions:')
-for a in s.assertions():
+# Display Assertions
+print('Solving with the following Assertions:')
+for a in s.Assertions():
     print("\t", a)
 
-# Display whether or not it is satisfiable
-print('Result: ', s.sat)
+# Display whether or not it is.Satisfiable
+print('Result: ', s.Sat)
 
 # Print model values
-print('bv1 = ', s.get_value(bv1))
-print('bv2 = ', s.get_value(bv2))
+print('bv1 = ', s.GetValue(bv1))
+print('bv2 = ', s.GetValue(bv2))

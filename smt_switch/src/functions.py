@@ -1,7 +1,10 @@
 import sys
+import enum
+from collections import OrderedDict
 from functools import partial
 from ..config import config
 from ..util import namedtuple_with_defaults
+
 
 fdata = namedtuple_with_defaults('fdata', 'num_indices, min_arity, max_arity, custom')
 
@@ -36,42 +39,56 @@ def _Or(*args):
         raise ValueError('Custom Or should not be called with >= 2 args')
 
 
-func_symbols = {'And': fdata(0, 2, sys.maxsize, _And),
-                'Or': fdata(0, 2, sys.maxsize, _Or),
-                'Equals': fdata(0, 2, 2),
-                'Not': fdata(0, 1, 1),
-                'Ite': fdata(0, 3, 3),
-                'Sub': fdata(0, 2, 2),
-                'Add': fdata(0, 2, sys.maxsize),
-                'LT': fdata(0, 2, 2),
-                'GT': fdata(0, 2, 2),
-                'LEQ': fdata(0, 2, 2),
-                'GEQ': fdata(0, 2, 2),
-                'Extract': fdata(2, 1, 1),
-                'Concat': fdata(0, 2, 2),
-                'Zero_extend': fdata(0, 2, 2),
-                'BVAnd': fdata(0, 2, 2),
-                'BVOr': fdata(0, 2, 2),
-                'BVXor': fdata(0, 2, 2),
-                'BVAdd': fdata(0, 2, 2),
-                'BVSub': fdata(0, 2, 2),
-                'BVMul': fdata(0, 2, 2),
-                'BVUdiv': fdata(0, 2, 2),
-                'BVUrem': fdata(0, 2, 2),
-                'BVShl': fdata(0, 2, 2),
-                'BVAshr': fdata(0, 2, 2),
-                'BVLshr': fdata(0, 2, 2),
-                'BVUlt': fdata(0, 2, 2),
-                'BVUle': fdata(0, 2, 2),
-                'BVUgt': fdata(0, 2, 2),
-                'BVUge': fdata(0, 2, 2),
-                'BVSlt': fdata(0, 2, 2),
-                'BVSle': fdata(0, 2, 2),
-                'BVSgt': fdata(0, 2, 2),
-                'BVSge': fdata(0, 2, 2),
-                'BVNot': fdata(0, 1, 1),
-                'BVNeg': fdata(0, 1, 1),
-                'No_op': fdata(0, 0, 0), }
+# Use strings here so that enums are automatically generated
+# if used enum here, would have to write function twice
+# once in enum and once to connect with data
+
+# make it an OrderedDict so that enum values are always the same
+func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
+                            ('Or', fdata(0, 2, sys.maxsize, _Or)),
+                            ('Equals', fdata(0, 2, 2)),
+                            ('Not', fdata(0, 1, 1)),
+                            ('Ite', fdata(0, 3, 3)),
+                            ('Sub', fdata(0, 2, 2)),
+                            ('Add', fdata(0, 2, sys.maxsize)),
+                            ('LT', fdata(0, 2, 2)),
+                            ('GT', fdata(0, 2, 2)),
+                            ('LEQ', fdata(0, 2, 2)),
+                            ('GEQ', fdata(0, 2, 2)),
+                            ('Extract', fdata(2, 1, 1)),
+                            ('Concat', fdata(0, 2, 2)),
+                            ('Zero_extend', fdata(0, 2, 2)),
+                            ('BVAnd', fdata(0, 2, 2)),
+                            ('BVOr', fdata(0, 2, 2)),
+                            ('BVXor', fdata(0, 2, 2)),
+                            ('BVAdd', fdata(0, 2, 2)),
+                            ('BVSub', fdata(0, 2, 2)),
+                            ('BVMul', fdata(0, 2, 2)),
+                            ('BVUdiv', fdata(0, 2, 2)),
+                            ('BVUrem', fdata(0, 2, 2)),
+                            ('BVShl', fdata(0, 2, 2)),
+                            ('BVAshr', fdata(0, 2, 2)),
+                            ('BVLshr', fdata(0, 2, 2)),
+                            ('BVUlt', fdata(0, 2, 2)),
+                            ('BVUle', fdata(0, 2, 2)),
+                            ('BVUgt', fdata(0, 2, 2)),
+                            ('BVUge', fdata(0, 2, 2)),
+                            ('BVSlt', fdata(0, 2, 2)),
+                            ('BVSle', fdata(0, 2, 2)),
+                            ('BVSgt', fdata(0, 2, 2)),
+                            ('BVSge', fdata(0, 2, 2)),
+                            ('BVNot', fdata(0, 1, 1)),
+                            ('BVNeg', fdata(0, 1, 1)),
+                            ('No_op', fdata(0, 0, 0))])
+
+
+# generate enums for each of these function symbols
+func_d = dict()
+
+for fname, i in zip(func_symbols.keys(), range(0, len(func_symbols))):
+    func_d[fname] = i
+
+func_enum = enum.Enum('func_enum', func_d)
 
 
 class operator:
@@ -99,6 +116,7 @@ class operator:
     def __init__(self, fun, *args, **kwargs):
         self._p = partial(fun, *args, **kwargs)
         self._fname = fun.__name__
+        self._enum = func_enum[fun.__name__]
 
     def __eq__(self, other):
         return self._p.func == other._p.func and self._p.args == other._p.args \
@@ -115,6 +133,10 @@ class operator:
     @property
     def fname(self):
         return self._fname
+
+    @property
+    def enum(self):
+        return self._enum
 
     @property
     def args(self):
@@ -142,7 +164,7 @@ def __op_eval(smt, fun, fdata, *args, **kwargs):
 
        i.e. bvult is  <operator: bvult () {}>  <-- operator with no args
 
-       The operators are callable, and can be used by solver.apply_fun(operator, *args)
+       The operators are callable, and can be used by solver.ApplyFun(operator, *args)
     '''
 
     # expand out args if list
@@ -166,7 +188,7 @@ def __op_eval(smt, fun, fdata, *args, **kwargs):
                 raise ValueError('In strict mode and received {} args when max arity = '
                                  .format(len(args), fdata.max_arity))
 
-            return smt.apply_fun(fun, *args, **kwargs)
+            return smt.ApplyFun(fun, *args, **kwargs)
 
         else:
             return operator(fun.func, *args, **kwargs)
@@ -188,8 +210,8 @@ def __op_eval(smt, fun, fdata, *args, **kwargs):
 
         # always pass a partial function with the minumum number of arguments
         # this is for CVC4 to construct the function
-        return smt.apply_fun(operator(fun, *args[:fdata.num_indices]),
-                             *args[fdata.num_indices:], **kwargs)
+        return smt.ApplyFun(operator(fun, *args[:fdata.num_indices]),
+                            *args[fdata.num_indices:], **kwargs)
 
     else:
         # check for custom function behavior
@@ -206,7 +228,7 @@ def __op_eval(smt, fun, fdata, *args, **kwargs):
                                      fdata.num_indices + fdata.min_arity, len(args)))
 
 
-def __gen_operator(smt, name, fdata):
+def _gen_operator(smt, name, fdata):
 
     '''
        Generates functions based on the dictionary funcs with the namedtuple

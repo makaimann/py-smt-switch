@@ -6,17 +6,6 @@ from smt_switch.tests import all_solvers
 
 smt = smt_switch.smt
 
-And = smt.And
-Or = smt.Or
-Ite = smt.Ite
-LT = smt.LT
-LEQ = smt.LEQ
-GT = smt.GT
-GEQ = smt.GEQ
-Add = smt.Add
-Sub = smt.Sub
-Equals = smt.Equals
-
 
 def test_lia():
     '''
@@ -32,48 +21,48 @@ def test_lia():
     config.strict = True
 
     for name in all_solvers:  # iterate through the solvers
-        smt.set_solver(name)
-        smt.set_logic('QF_LIA')
-        isort = smt.construct_sort(smt.Int)
-        i1 = smt.declare_const('i1', isort)
-        i2 = smt.declare_const('i2', isort)
-        i3 = smt.declare_const('i3', isort)
+        s = smt(name)
+        s.SetLogic('QF_LIA')
+        isort = s.ConstructSort(s.Int)
+        i1 = s.DeclareConst('i1', isort)
+        i2 = s.DeclareConst('i2', isort)
+        i3 = s.DeclareConst('i3', isort)
         assert isinstance(i1, eval('smt_switch.terms.{}Term'.format(name)))
 
-        i1plusi2 = smt.apply_fun(Add, i1, i2)
-        i3minusi2 = smt.apply_fun(Sub, i3, i2)
+        i1plusi2 = s.ApplyFun(s.Add, i1, i2)
+        i3minusi2 = s.ApplyFun(s.Sub, i3, i2)
 
         assert i1 in i1plusi2.children
         assert i2 in i1plusi2.children
-        assert i1plusi2.op == Add
+        assert i1plusi2.op == s.Add
 
-        six = smt.theory_const(isort, 6)
-        two = smt.theory_const(isort, 2)
-        three = smt.theory_const(isort, 3)
-        zero = smt.theory_const(isort, 2)
+        six = s.TheoryConst(isort, 6)
+        two = s.TheoryConst(isort, 2)
+        three = s.TheoryConst(isort, 3)
+        zero = s.TheoryConst(isort, 2)
 
-        formula1 = smt.apply_fun(LEQ, i1plusi2, six)
-        formula2 = smt.apply_fun(GEQ, i3minusi2, two)
-        formula3 = smt.apply_fun(Equals, i1, three)
-        formula4 = smt.apply_fun(GT, i2, zero)
-        formula5 = smt.apply_fun(LT, i3, two)
+        formula1 = s.ApplyFun(s.LEQ, i1plusi2, six)
+        formula2 = s.ApplyFun(s.GEQ, i3minusi2, two)
+        formula3 = s.ApplyFun(s.Equals, i1, three)
+        formula4 = s.ApplyFun(s.GT, i2, zero)
+        formula5 = s.ApplyFun(s.LT, i3, two)
 
         assert isinstance(formula1, eval('smt_switch.terms.{}Term'.format(name)))
         assert i1plusi2 in formula1.children
-        assert formula1.op == LEQ
-        assert formula1.sort == smt.Bool()
+        assert formula1.op == s.LEQ
+        assert formula1.sort == s.Bool()
 
-        smt.Assert(formula1)
-        smt.Assert(formula2)
-        smt.Assert(formula3)
-        smt.Assert(formula4)
-        smt.Assert(formula5)
+        s.Assert(formula1)
+        s.Assert(formula2)
+        s.Assert(formula3)
+        s.Assert(formula4)
+        s.Assert(formula5)
 
         # check satisfiability
-        smt.check_sat()
+        s.CheckSat()
 
         # expect UNSAT
-        assert not smt.sat
+        assert not s.Sat
 
 
 def test_ite():
@@ -89,58 +78,58 @@ def test_ite():
     config.strict = True
 
     for name in all_solvers:
-        smt.set_solver(name)
+        s = smt(name)
 
-        # demonstrating that you don't need to use smt.construct_sort
-        isort = smt.Int()
+        # demonstrating that you don't need to use s.ConstructSort
+        isort = s.Int()
 
-        x1 = smt.declare_const('x1', isort)
-        x2 = smt.declare_const('x2', isort)
-        assert x1.sort == smt.Int()
+        x1 = s.DeclareConst('x1', isort)
+        x2 = s.DeclareConst('x2', isort)
+        assert x1.sort == s.Int()
         
-        zero = smt.theory_const(isort, 0)
+        zero = s.TheoryConst(isort, 0)
         assert isinstance(zero, eval('smt_switch.terms.{}Term'.format(name)))
 
-        x1pos = smt.apply_fun(GT, x1, zero)
-        x2pos = smt.apply_fun(GT, x2, zero)
-        assert x1pos.op == GT
-        assert x1pos.sort == smt.Bool()
+        x1pos = s.ApplyFun(s.GT, x1, zero)
+        x2pos = s.ApplyFun(s.GT, x2, zero)
+        assert x1pos.op == s.GT
+        assert x1pos.sort == s.Bool()
         assert zero in x1pos.children
 
-        y1 = smt.apply_fun(Ite, x1pos, x1, zero)
-        y2 = smt.apply_fun(Ite, x2pos, x2, zero)
+        y1 = s.ApplyFun(s.Ite, x1pos, x1, zero)
+        y2 = s.ApplyFun(s.Ite, x2pos, x2, zero)
         assert isinstance(y1, eval('smt_switch.terms.{}Term'.format(name)))
         assert x1 in y1.children
         assert x1pos in y1.children
-        assert y1.sort == smt.Int()
+        assert y1.sort == s.Int()
 
-        y1plusy2 = smt.apply_fun(Add, y1, y2)
+        y1plusy2 = s.ApplyFun(s.Add, y1, y2)
 
-        three = smt.theory_const(isort, 3)
-        y1plusy2GEQ3 = smt.apply_fun(GEQ, y1plusy2, three)
-        assert y1plusy2GEQ3.op == GEQ
+        three = s.TheoryConst(isort, 3)
+        y1plusy2GEQ3 = s.ApplyFun(s.GEQ, y1plusy2, three)
+        assert y1plusy2GEQ3.op == s.GEQ
         assert three in y1plusy2GEQ3.children
 
-        two = smt.theory_const(isort, 2)
-        y1leq2 = smt.apply_fun(LEQ, y1, two)
-        assert y1leq2.sort == smt.Bool()
+        two = s.TheoryConst(isort, 2)
+        y1leq2 = s.ApplyFun(s.LEQ, y1, two)
+        assert y1leq2.sort == s.Bool()
 
-        x2neg = smt.apply_fun(LT, x2, zero)
+        x2neg = s.ApplyFun(s.LT, x2, zero)
         assert x2neg.__repr__() == '(< x2 0)' or x2neg.__repr__() == '(> 0 x2)'
 
-        # make assertions in solver
-        smt.Assert(y1plusy2GEQ3)
-        smt.Assert(y1leq2)
-        smt.Assert(x2neg)
+        # make Assertions in solver
+        s.Assert(y1plusy2GEQ3)
+        s.Assert(y1leq2)
+        s.Assert(x2neg)
 
         # check that sat is not assigned
-        assert smt.sat is None
+        assert s.Sat is None
 
         # check satisfiability
-        smt.check_sat()
+        s.CheckSat()
 
         # expect UNSAT
-        assert not smt.sat
+        assert not s.Sat
 
 
 if __name__ == "__main__":

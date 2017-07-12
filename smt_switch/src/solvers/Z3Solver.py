@@ -1,4 +1,5 @@
 from .. import sorts
+from ..functions import func_enum
 from .solverbase import SolverBase
 
 
@@ -10,41 +11,41 @@ class Z3Solver(SolverBase):
                 sorts.Real: z3.Real,
                 sorts.Bool: z3.Bool}
 
-    _z3Funs = {'Extract': z3.Extract,
-               'Concat': z3.Concat,
-               'Zero_extend': z3.ZeroExt,
-               'Not': z3.Not,
-               'Equals': lambda arg1, arg2: arg1 == arg2,
-               'And': z3.And,
-               'Or': z3.Or,
-               'Ite': z3.If,
-               'Sub': lambda arg1, arg2: arg1 - arg2,
-               'Add': lambda arg1, arg2: arg1 + arg2,
-               'LT': lambda arg1, arg2: arg1 < arg2,
-               'LEQ': lambda arg1, arg2: arg1 <= arg2,
-               'GT': lambda arg1, arg2: arg1 > arg2,
-               'GEQ': lambda arg1, arg2: arg1 >= arg2,
-               'BVAnd': lambda arg1, arg2: arg1 & arg2,
-               'BVOr': lambda arg1, arg2: arg1 | arg2,
-               'BVXor': lambda arg1, arg2: arg1 ^ arg2,
-               'BVAdd': lambda arg1, arg2: arg1 + arg2,
-               'BVSub': lambda arg1, arg2: arg1 - arg2,
-               'BVMul': lambda arg1, arg2: arg1*arg2,
-               'BVUdiv': z3.UDiv,
-               'BVUrem': z3.URem,
-               'BVShl': lambda arg1, arg2: arg1 << arg2,
-               'BVAshr': lambda arg1, arg2: arg1 >> arg2,
-               'BVLshr': z3.LShR,
-               'BVUlt': z3.ULT,
-               'BVUle': z3.ULE,
-               'BVUgt': z3.UGT,
-               'BVUge': z3.UGE,
-               'BVSlt': lambda arg1, arg2: arg1 < arg2,
-               'BVSle': lambda arg1, arg2: arg1 <= arg2,
-               'BVSgt': lambda arg1, arg2: arg1 > arg2,
-               'BVSge': lambda arg1, arg2: arg1 >= arg2,
-               'BVNot': lambda arg: ~arg,
-               'BVNeg': lambda arg: -arg}
+    _z3Funs = {func_enum.Extract: z3.Extract,
+               func_enum.Concat: z3.Concat,
+               func_enum.Zero_extend: z3.ZeroExt,
+               func_enum.Not: z3.Not,
+               func_enum.Equals: lambda arg1, arg2: arg1 == arg2,
+               func_enum.And: z3.And,
+               func_enum.Or: z3.Or,
+               func_enum.Ite: z3.If,
+               func_enum.Sub: lambda arg1, arg2: arg1 - arg2,
+               func_enum.Add: lambda arg1, arg2: arg1 + arg2,
+               func_enum.LT: lambda arg1, arg2: arg1 < arg2,
+               func_enum.LEQ: lambda arg1, arg2: arg1 <= arg2,
+               func_enum.GT: lambda arg1, arg2: arg1 > arg2,
+               func_enum.GEQ: lambda arg1, arg2: arg1 >= arg2,
+               func_enum.BVAnd: lambda arg1, arg2: arg1 & arg2,
+               func_enum.BVOr: lambda arg1, arg2: arg1 | arg2,
+               func_enum.BVXor: lambda arg1, arg2: arg1 ^ arg2,
+               func_enum.BVAdd: lambda arg1, arg2: arg1 + arg2,
+               func_enum.BVSub: lambda arg1, arg2: arg1 - arg2,
+               func_enum.BVMul: lambda arg1, arg2: arg1*arg2,
+               func_enum.BVUdiv: z3.UDiv,
+               func_enum.BVUrem: z3.URem,
+               func_enum.BVShl: lambda arg1, arg2: arg1 << arg2,
+               func_enum.BVAshr: lambda arg1, arg2: arg1 >> arg2,
+               func_enum.BVLshr: z3.LShR,
+               func_enum.BVUlt: z3.ULT,
+               func_enum.BVUle: z3.ULE,
+               func_enum.BVUgt: z3.UGT,
+               func_enum.BVUge: z3.UGE,
+               func_enum.BVSlt: lambda arg1, arg2: arg1 < arg2,
+               func_enum.BVSle: lambda arg1, arg2: arg1 <= arg2,
+               func_enum.BVSgt: lambda arg1, arg2: arg1 > arg2,
+               func_enum.BVSge: lambda arg1, arg2: arg1 >= arg2,
+               func_enum.BVNot: lambda arg: ~arg,
+               func_enum.BVNeg: lambda arg: -arg}
     _z3Consts = {sorts.BitVec: z3.BitVecVal,
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal,
@@ -55,69 +56,61 @@ class Z3Solver(SolverBase):
         super().__init__()
         self._solver = self.z3.Solver()
 
-    def reset(self):
-        self._solver.reset()
+    def Reset(self):
+        self._solver.Reset()
 
-    def check_sat(self):
+    def CheckSat(self):
         # rely on Assert for now
-        # chose this way so user can get assertions, but also aren't added twice
+        # chose this way so user can get Assertions, but also aren't added twice
         # self._solver.add(self.constraints)
-        self.sat = self._solver.check() == self.z3.sat
-        return self.sat
+        self.Sat = self._solver.check() == self.z3.sat
+        return self.Sat
 
-    def set_logic(self, logicstr):
+    def SetLogic(self, logicstr):
         self._solver.set(logic=logicstr)
 
-    def set_option(self, optionstr, value):
+    def SetOption(self, optionstr, value):
         # check if option is defined (some options are always on in z3)
         if optionstr in self._z3Options:
             self.z3.set_param(self._z3Options[optionstr], value)
 
-    def set_nonstandard_option(self, optionstr, value):
-        self.z3.set_param(self, optionstr, value)
-
-    def declare_const(self, name, sort):
+    def DeclareConst(self, name, sort):
         z3const = self._z3Sorts[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
         return z3const
 
-    def theory_const(self, sort, value):
+    def TheoryConst(self, sort, value):
         # Note: order of arguments is opposite what I would expect
         # if it becomes a problem, might need to use keywords
         z3tconst = self._z3Consts[sort.__class__](value, *sort.params)
         return z3tconst
 
-    # if config strict, check arity of function
-    def apply_fun(self, fname, indices, *args):
-        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-        #     raise ValueError('In strict mode you must respect function arity:' +
-        #                      ' {}: arity = {}'.format(fun, fun.arity))
-
+    def ApplyFun(self, f_enum, indices, *args):
         # Some versions of python don't allow fun(*list1, *list2) so combining
-        z3expr = self._z3Funs[fname](*(indices + args))
+        z3expr = self._z3Funs[f_enum](*(indices + args))
         return z3expr
 
     def Assert(self, c):
         self._solver.add(c)
 
-    def assertions(self):
+    def Assertions(self):
         # had issue with returning an iterable for CVC4
         # thus to keep things consistent, returning a list here
         # it also mimics both z3 and cvc4's normal behavior to use a list
-        return [assertion.sexpr() for assertion in self._solver.assertions()]
+        return [assertion.sexpr() for assertion in self._solver.Assertions()]
 
-    def get_model(self):
-        if self.sat:
+    def GetModel(self):
+        if self.Sat:
             return self._solver.model()
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
 
-    def get_value(self, var):
-        if self.sat:
+    def GetValue(self, var):
+        if self.Sat:
             return self._solver.model().eval(var)
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')

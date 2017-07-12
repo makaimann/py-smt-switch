@@ -16,11 +16,25 @@ def check_solver(f):
     return eval_f
 
 
-class _smt:
-    # better to reinitialize each time actually
-    # __solver_cache = {'CVC4': None,
-    #                   'Z3': None,
-    #                   'Boolector': None}
+def check_instance(f):
+    def eval_f(self, *terms):
+        if isinstance(terms[0], Sequence):
+            terms = terms[0]
+
+        for term in terms:
+            # if it's a term object, verify that the
+            # smt api instance is the same as the one
+            # currently being used
+            if hasattr(term, '_smt') and term._smt != self:
+                raise ValueError('Bad! Mixing terms from different api (smt) instances')
+
+        return f(self, *terms)
+
+    return eval_f
+
+
+class smt:
+
     __solver_map = {'CVC4': solvers.CVC4Solver,
                     'Z3': solvers.Z3Solver,
                     'Boolector': solvers.BoolectorSolver}
@@ -28,31 +42,27 @@ class _smt:
                   solvers.Z3Solver: terms.Z3Term,
                   solvers.BoolectorSolver: terms.BoolectorTerm}
 
-    def __init__(self):
-        self._solver = None
-        self.constraints = []
-
-    def __call__(self, solver_name=None):
-        if solver_name in self.__solver_map:
-            self.set_solver(solver_name)
-        else:
+    def __init__(self, solver_name):
+        if solver_name not in self.__solver_map:
             raise ValueError('{} is not a supported solver'.format(solver_name))
 
-        return self
-
-    def set_solver(self, solver_name):
-        # originally returned solver instance if it already existed,
-        # but this could be confusing because you'd have to reset the
-        # solver to be sure it wasn't already carrying assertions
-        # easier to just overwrite
         self._solver = self.__solver_map[solver_name]()
         self.constraints = []
 
-    def construct_fun(self, fun, *args):
+        # give the instance access to functions
+        for name, fdata in functions.func_symbols.items():
+            op = functions._gen_operator(self, name, fdata)
+            setattr(self, name, op)
+
+        # give the instance access to sorts
+        for s in sorts.__all__:
+            setattr(self, s, sorts.__dict__[s])
+
+    def ConstructFun(self, fun, *args):
         # partial function evaluation all handled internally
         return fun(*args)
 
-    def construct_sort(self, s, *args):
+    def ConstructSort(self, s, *args):
         return s(*args)
 
     @property
@@ -60,50 +70,43 @@ class _smt:
         return self._solver
 
     # solver functions
-    @check_solver
-    def add(self, c):
+
+    def Add(self, c):
         ''' Alias for Assert '''
-        self.solver.add(c)
+        self.solver.Assert(c)
 
-    @check_solver
-    def reset(self):
-        self.solver.reset()
+    def Reset(self):
+        self.solver.Reset()
 
-    @check_solver
-    def check_sat(self):
-        return self.solver.check_sat()
+    def CheckSat(self):
+        return self.solver.CheckSat()
 
     @property
-    @check_solver
-    def sat(self):
-        return self.solver.sat
+    def Sat(self):
+        return self.solver.Sat
 
-    @check_solver
-    def set_logic(self, logicstr):
-        self.solver.set_logic(logicstr)
+    def SetLogic(self, logicstr):
+        self.solver.SetLogic(logicstr)
 
-    @check_solver
-    def set_option(self, optionstr, value):
-        self.solver.set_option(optionstr, value)
+    def SetOption(self, optionstr, value):
+        self.solver.SetOption(optionstr, value)
 
-    @check_solver
-    def declare_const(self, name, sort):
-        sconst = self.solver.declare_const(name, sort)
+    def DeclareConst(self, name, sort):
+        sconst = self.solver.DeclareConst(name, sort)
         return self.__term_map[self.solver.__class__](self,
                                                       self.No_op,
                                                       sconst,
                                                       [sort])
 
-    @check_solver
-    def theory_const(self, sort, value):
-        stconst = self.solver.theory_const(sort, value)
+    def TheoryConst(self, sort, value):
+        stconst = self.solver.TheoryConst(sort, value)
         return self.__term_map[self.solver.__class__](self,
                                                       self.No_op,
                                                       stconst,
                                                       [sort])
 
-    @check_solver
-    def apply_fun(self, fun, *args):
+    @check_instance
+    def ApplyFun(self, fun, *args):
         # handle lists of arguments
         if isinstance(args[0], Sequence):
             args = tuple(args[0])
@@ -124,16 +127,16 @@ class _smt:
             solver_args = tuple([arg.solver_term
                                  if hasattr(arg, 'solver_term')
                                  else
-                                 self.solver.theory_const(ls_term.sort, arg)
+                                 self.solver.TheoryConst(ls_term.sort, arg)
                                  for arg in args])
 
-        s_term = self.solver.apply_fun(fun.fname, fun.args, *solver_args)
+        s_term = self.solver.ApplyFun(fun.enum, fun.args, *solver_args)
         return self.__term_map[self._solver.__class__](self,
                                                        fun,
                                                        s_term,
                                                        list(args))
 
-    @check_solver
+    @check_instance
     def Assert(self, *constraints):
         if isinstance(constraints[0], Sequence):
             constraints = tuple(constraints[0])
@@ -156,27 +159,12 @@ class _smt:
             self.constraints.append(constraint)
 
     @property
-    @check_solver
-    def assertions(self):
-        return self.solver.assertions()
+    def Assertions(self):
+        return self.solver.Assertions()
 
-    @check_solver
-    def get_model(self):
+    def GetModel(self):
         raise NotImplementedError()
 
-    @check_solver
-    def get_value(self, var):
-        var._value = self.solver.get_value(var.solver_term)
+    def GetValue(self, var):
+        var._value = self.solver.GetValue(var.solver_term)
         return var
-
-
-# instantiate the smt api
-smt = _smt()
-
-
-for name, fdata in functions.func_symbols.items():
-    op = functions.__gen_operator(smt, name, fdata)
-    setattr(smt, name, op)
-
-for s in sorts.__all__:
-    setattr(smt, s, sorts.__dict__[s])
