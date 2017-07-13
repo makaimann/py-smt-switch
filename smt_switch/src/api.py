@@ -50,9 +50,9 @@ class smt:
         self.constraints = []
 
         # give the instance access to functions
-        for name, fdata in functions.func_symbols.items():
-            op = functions._gen_operator(self, name, fdata)
-            setattr(self, name, op)
+        for f_enum in functions.func_enum:
+            op = functions.operator(self, f_enum, functions.func_symbols[f_enum.name])
+            setattr(self, f_enum.name, op)
 
         # give the instance access to sorts
         for s in sorts.__all__:
@@ -151,7 +151,7 @@ class smt:
             if hasattr(constraint, 'solver_term'):
                 c = constraint.solver_term
             else:
-                c = self.solver.theory_const(sorts.Bool(), constraint)
+                c = self.solver.TheoryConst(sorts.Bool(), constraint)
 
             self.solver.Assert(c)
 

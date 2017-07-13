@@ -107,6 +107,33 @@ class TermBase(metaclass=ABCMeta):
             other = self._smt.TheoryConst(self.sort, other)
         return self._smt.ApplyFun(self._smt.BVAshr, self, other)
 
+    def __getitem__(self, idx):
+        if self.sort.__class__ != self._smt.BitVec:
+            raise ValueError('Slicing only defined for BitVec sorts')
+
+        if isinstance(idx, slice):
+            if idx.step and idx.step != 1:
+                raise ValueError('Extract does not support step != 1')
+
+            if idx.start < 0 or idx.start >= self.sort.width:
+                raise ValueError('{} is not a valid index for BitVec width {}'.format(idx.start, self.sort.width))
+
+            if idx.stop < 0 or idx.stop >= self.sort.width:
+                raise ValueError('{} is not a valid index for BitVec width {}'.format(idx.stop, self.sort.width))
+
+            if idx.start < idx.stop:
+                raise ValueError('Extract is defined as [bith:bitl]')
+
+            return self._smt.ApplyFun(self._smt.Extract(idx.start, idx.stop), self)
+
+        elif isinstance(idx, int):
+            if idx < 0 or idx >= self.sort.width:
+                raise ValueError('{} is not a valid index for BitVec width {}'.format(idx, self.sort.width))
+
+            return self._smt.ApplyFun(self._smt.Extract(idx, idx), self)
+        else:
+            raise ValueError('Slicing not defined for {}'.format(idx))
+
     def as_bitstr(self, width=None):
         ''' Represent as bit string '''
         # this uses child class's as_int, so it can be fully general

@@ -66,12 +66,13 @@ def test_bv_extract():
         ext_31_1 = s.ConstructFun(s.Extract, 31, 1)
         x_31_1 = ext_31_1(x)
 
-        ext_30_0 = s.ConstructFun(s.Extract, 30, 0)
-        x_30_0 = ext_30_0(x)
-
         x_31_31 = s.Extract(31, 31, x)
 
-        x_0_0 = s.Extract(0, 0, x)
+        # You can also use slicing notation
+        x_30_0 = x[30:0]
+
+        # or if you just want one bit, use it as an index
+        x_0_0 = x[0]
 
         assert x_31_1.sort == x_30_0.sort
         assert x_31_31.sort == x_0_0.sort

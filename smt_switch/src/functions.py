@@ -1,6 +1,6 @@
 import sys
 import enum
-from collections import OrderedDict
+from collections import OrderedDict, Sequence
 from functools import partial
 from ..config import config
 from ..util import namedtuple_with_defaults
@@ -90,6 +90,9 @@ for fname, i in zip(func_symbols.keys(), range(0, len(func_symbols))):
 
 func_enum = enum.Enum('func_enum', func_d)
 
+# to make it iterable
+func_enum.__order__ = func_symbols.keys()
+
 
 class operator:
     '''
@@ -113,22 +116,21 @@ class operator:
             ex4_2 == functions.extract(4, 2) will return True
     '''
 
-    def __init__(self, fun, *args, **kwargs):
-        self._p = partial(fun, *args, **kwargs)
-        self._fname = fun.__name__
-        self._enum = func_enum[fun.__name__]
+    def __init__(self, smt, f_enum, fdata, *args, **kwargs):
+        self._smt = smt
+        self._fname = f_enum.name
+        self._enum = f_enum
+        self._fdata = fdata
+        self._args = args
+        self._keywords = kwargs
 
     def __eq__(self, other):
-        return self._p.func == other._p.func and self._p.args == other._p.args \
-                               and self._p.keywords == other._p.keywords
+        return self._fname == other._fname and self._args == other._args \
+                               and self._keywords == other._keywords
 
     def __ne__(self, other):
-        return self._p.func != other._p.func or self._p.args != other._p.args \
-                               or self._p.keywords != other._p.keywords
-
-    @property
-    def func(self):
-        return self._p.func
+        return self._fname != other._fname or self._args != other._args \
+                               or self._keywords != other._keywords
 
     @property
     def fname(self):
@@ -140,108 +142,63 @@ class operator:
 
     @property
     def args(self):
-        return self._p.args
+        return self._args
 
     @property
     def keywords(self):
         return self._p.keywords
 
     def __repr__(self):
-        return '<operator: {}, {} {}>'.format(self._fname, self._p.args, self._p.keywords)
+        return '<operator: {}, {} {}>'.format(self._fname, self._args, self._keywords)
 
     def __call__(self, *args, **kwargs):
-        return self._p(*args, **kwargs)
+        if args and isinstance(args[0], Sequence):
+            args = args[0]
 
-    def __hash__(self):
-        return self.func.__hash__()
+        if len(self._args) == 0 and len(args) == self._fdata.num_indices:
 
+            # check for custom behavior
+            if self._fdata.num_indices == 0 and self._fdata.custom and not config.strict:
+                return self._fdata.custom(*args)
 
-# generators
-def __op_eval(smt, fun, fdata, *args, **kwargs):
-    '''
-       Takes a function creates an operator for it. All functions are instantiated as an operator
-       If the function is not an indexed operator, then it just has no args
+            else:
+                return operator(self._smt, self._enum, self._fdata, *args, **kwargs)
 
-       i.e. bvult is  <operator: bvult () {}>  <-- operator with no args
-
-       The operators are callable, and can be used by solver.ApplyFun(operator, *args)
-    '''
-
-    # expand out args if list
-    if args and isinstance(args[0], list):
-        args = args[0]
-
-    # if args:
-    #     # Not pretty but trying to avoid circular dependency
-    #     s_terms = list(filter(lambda arg: 'TermBase' in
-    #                           [base.__name__ for base in arg.__class__.__bases__], args))
-
-    if fun.__class__ == operator:
-        # TODO: Also allow keyword arguments -- not urgent
-
-        # if already an operator, then all indices should be assigned
-        assert len(fun.args) == fdata.num_indices
-
-        if len(args) > fdata.min_arity:
-
-            if config.strict and len(args) > fdata.max_arity:
+        elif len(self._args) == self._fdata.num_indices and len(args) >= self._fdata.min_arity:
+            if config.strict and len(args) > self._fdata.max_arity:
                 raise ValueError('In strict mode and received {} args when max arity = '
                                  .format(len(args), fdata.max_arity))
 
-            return smt.ApplyFun(fun, *args, **kwargs)
+            return self._smt.ApplyFun(self, *args, **kwargs)
+
+        elif len(args) >= self._fdata.num_indices + self._fdata.min_arity:
+            if config.strict and len(args) - self._fdata.num_indices > self._fdata.max_arity:
+                raise ValueError('In strict mode and received {} function indices and' +
+                                 ' {} args when max arity = '
+                                 .format(self._fdata.num_indices,
+                                         len(args) - self._fdata.num_indices, fdata.max_arity))
+
+            # always pass an operator with the minumum number of arguments
+            # this is for CVC4 to construct the function
+            op = operator(self._smt, self._enum, self._fdata,
+                          *args[:self._fdata.num_indices])
+
+            args = args[self._fdata.num_indices:]
+
+            return self._smt.ApplyFun(op, *args, **kwargs)
 
         else:
-            return operator(fun.func, *args, **kwargs)
+            # check for custom behaviour
+            if self._fdata.custom and not config.strict:
+                return self._fdata.custom(*args, **kwargs)
 
-    elif len(args) == fdata.num_indices:
+            elif fdata.num_indices == 0:
+                # non-indexed operator
+                raise ValueError('Expected {} inputs to operator but received {}'
+                                 .format(fdata.min_arity, len(args)))
+            else:
+                raise ValueError('Undefined behaviour for {}{}'
+                                 .format(self, args))
 
-        # check for custom function behavior
-        if fdata.num_indices == 0 and fdata.custom and not config.strict:
-            return fdata.custom(*args)
-
-        else:
-            return operator(fun, *args, **kwargs)
-
-    elif len(args) >= fdata.num_indices + fdata.min_arity:
-
-        if config.strict and len(args) > fdata.max_arity:
-            raise ValueError('In strict mode and received {} args when max arity = '
-                             .format(len(args), fdata.max_arity))
-
-        # always pass a partial function with the minumum number of arguments
-        # this is for CVC4 to construct the function
-        return smt.ApplyFun(operator(fun, *args[:fdata.num_indices]),
-                            *args[fdata.num_indices:], **kwargs)
-
-    else:
-        # check for custom function behavior
-        if fdata.custom and not config.strict:
-            return fdata.custom(*args)
-
-        elif fdata.num_indices == 0:
-            # non-indexed operator
-            raise ValueError('Expected {} inputs to operator but received {}'
-                             .format(fdata.min_arity, len(args)))
-        else:
-            raise ValueError('Expected {} or {} inputs to operator but received {}'
-                             .format(fdata.num_indices,
-                                     fdata.num_indices + fdata.min_arity, len(args)))
-
-
-def _gen_operator(smt, name, fdata):
-
-    '''
-       Generates functions based on the dictionary funcs with the namedtuple
-       fdata which contains num_indices, min_arity and max_arity
-    '''
-
-    def func(*args):
-        return __op_eval(smt, func, fdata, *args)
-
-    func.__name__ = name
-
-    if fdata.num_indices < 0:
-        raise ValueError('Invalid expected num_indices in operator {}'.format(name))
-
-    # return function wrapped by operator class
-    return operator(func)
+    def __hash__(self):
+        return (self._fname, self._args).__hash__()
