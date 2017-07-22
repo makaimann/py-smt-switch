@@ -1,155 +1,114 @@
 from .. import sorts
-from .. import functions
-from .. import terms
-from .. import results
 from .solverbase import SolverBase
-from smt_switch.config import config
 from functools import reduce
-from math import ceil, log2
+from ..functions import func_enum
 
 
 class BoolectorSolver(SolverBase):
     def __init__(self):
+        super().__init__()
+        
         self.boolector = __import__('boolector')
         self._btor = self.boolector.Boolector()
 
-        # keeping track of assertions because couldn't figure out
-        # how to print a list of assertions (other than dumping to stdout/a file)
-        self._assertions = []
+        # keeping track of Assertions because couldn't figure out
+        # how to print a list of Assertions (other than dumping to stdout/a file)
+        self._Assertions = []
 
         self._BoolectorSorts = {sorts.BitVec: self._btor.BitVecSort,
                                 sorts.Bool: lambda: self._btor.BitVecSort(1)}
-        self._BoolectorFuns = {functions.Equals.func: self._btor.Eq,
-                               functions.And.func: self.And,
-                               functions.Or.func: self.Or,
-                               functions.Ite.func: self._btor.Cond,
-                               functions.Not.func: self._btor.Not,
-                               # indexed operators are already raw representation so don't need to use .func
-                               functions.Extract: self._btor.Slice,
-                               functions.Concat.func: self._btor.Concat,
-                               functions.BVAnd.func: self._btor.And,
-                               functions.BVOr.func: self._btor.Or,
-                               functions.BVXor.func: self._btor.Xor,
-                               functions.BVAdd.func: self._btor.Add,
-                               functions.BVSub.func: self._btor.Sub,
-                               functions.BVMul.func: self._btor.Mul,
-                               functions.BVUdiv.func: self._btor.Udiv,
-                               functions.BVUrem.func: self._btor.Urem,
-                               functions.BVShl.func: self.Sll,
-                               functions.BVAshr.func: self.Sra,
-                               functions.BVLshr.func: self.Srl,
-                               functions.BVUlt.func: self._btor.Ult,
-                               functions.BVUle.func: self._btor.Ulte,
-                               functions.BVUgt.func: self._btor.Ugt,
-                               functions.BVUge.func: self._btor.Ugte,
-                               functions.BVSlt.func: self._btor.Slt,
-                               functions.BVSle.func: self._btor.Slte,
-                               functions.BVSgt.func: self._btor.Sgt,
-                               functions.BVSge.func: self._btor.Sgte,
-                               functions.BVNot.func: self._btor.Not,
-                               functions.BVNeg.func: self._btor.Neg}
+        self._BoolectorFuns = {func_enum.Equals: self._btor.Eq,
+                               func_enum.And: self.And,
+                               func_enum.Or: self.Or,
+                               func_enum.Ite: self._btor.Cond,
+                               func_enum.Not: self._btor.Not,
+                               func_enum.Extract: self._btor.Slice,
+                               func_enum.Concat: self._btor.Concat,
+                               func_enum.BVAnd: self._btor.And,
+                               func_enum.BVOr: self._btor.Or,
+                               func_enum.BVXor: self._btor.Xor,
+                               func_enum.BVAdd: self._btor.Add,
+                               func_enum.BVSub: self._btor.Sub,
+                               func_enum.BVMul: self._btor.Mul,
+                               func_enum.BVUdiv: self._btor.Udiv,
+                               func_enum.BVUrem: self._btor.Urem,
+                               func_enum.BVShl: self.Sll,
+                               func_enum.BVAshr: self.Sra,
+                               func_enum.BVLshr: self.Srl,
+                               func_enum.BVUlt: self._btor.Ult,
+                               func_enum.BVUle: self._btor.Ulte,
+                               func_enum.BVUgt: self._btor.Ugt,
+                               func_enum.BVUge: self._btor.Ugte,
+                               func_enum.BVSlt: self._btor.Slt,
+                               func_enum.BVSle: self._btor.Slte,
+                               func_enum.BVSgt: self._btor.Sgt,
+                               func_enum.BVSge: self._btor.Sgte,
+                               func_enum.BVNot: self._btor.Not,
+                               func_enum.BVNeg: self._btor.Neg}
 
         self._BoolectorConsts = {sorts.BitVec: self._btor.Const,
                                  sorts.Bool: self._btor.Const}
         # Note: Boolector does not distinguish between Bools and (_ BitVec 1)
         #       so smt_switch is not either (specifically for Boolector)
-        self._BoolectorResults = {sorts.BitVec: results.BoolectorBitVecResult,
-                                  sorts.Bool: results.BoolectorBitVecResult}
+        # self._BoolectorResults = {sorts.BitVec: results.BoolectorBitVecResult,
+        #                           sorts.Bool: results.BoolectorBitVecResult}
         self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN}
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV']
 
-    def reset(self):
+    def Reset(self):
         self.__init__()
 
-    def check_sat(self):
+    def CheckSat(self):
         if self._btor.Sat() == self._btor.SAT:
-            self.sat = True
+            self.Sat = True
         else:
-            self.sat = False
-        return self.sat
+            self.Sat = False
+        return self.Sat
 
-    def set_logic(self, logicstr):
+    def SetLogic(self, logicstr):
         if logicstr not in self._BoolectorLogics:
             raise ValueError('Boolector does not support {} '.format(logicstr) +
                              'If you believe this is incorrect, please contact a ' +
                              'developer or modify the class yourself (see _BoolectorLogics)')
 
-    def set_option(self, optionstr, value):
+    def SetOption(self, optionstr, value):
         if optionstr in self._BoolectorOptions:
             self._btor.Set_opt(self._BoolectorOptions[optionstr], bool(value))
 
-    def set_nonstandard_option(self, optionstr, value):
-        self._btor.Set_opt(eval('boolector.{}'.format(optionstr)), value)
-
-    def declare_const(self, name, sort):
+    def DeclareConst(self, name, sort):
         btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
         btorconst = self._btor.Var(btorsort, name)
-        const = terms.BoolectorTerm(self, functions.No_op, btorconst, [sort])
-        return const
+        return btorconst
 
-    def theory_const(self, sort, value):
+    def TheoryConst(self, sort, value):
         btortconst = self._BoolectorConsts[sort.__class__](*((value,) + sort.params))
-        tconst = terms.BoolectorTerm(self, functions.No_op, btortconst, [sort])
-        return tconst
+        return btortconst
 
-    def apply_fun(self, op, *args):
-        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-        #     raise ValueError('In strict mode you must respect function arity:' +
-        #                      ' {}: arity = {}'.format(fun, fun.arity))
+    def ApplyFun(self, f_enum, indices, *args):
+        btor_expr = self._BoolectorFuns[f_enum](*(args + indices))
+        return btor_expr
 
-        # handle list argument
-        if isinstance(args[0], list):
-            args = args[0]
+    def Assert(self, c):
+        self._btor.Assert(c)
 
-        solver_args = tuple(getattr(arg, 'solver_term', arg) for arg in args)
-        btor_expr = self._BoolectorFuns[op.func](*(solver_args + op.args))
-        expr = terms.BoolectorTerm(self, op, btor_expr, list(args))
-        return expr
+    def Assertions(self):
+        return self._Assertions
 
-    def Assert(self, constraints):
-        if isinstance(constraints, list):
-            for constraint in constraints:
-                sort = getattr(constraint, 'sort', type(constraint))
-                if sort != bool and sort != sorts.Bool():
-                    raise ValueError('Can only assert formulas of sort Bool. ' +
-                                     'Received sort: {}'.format(constraint.sort))
-                # getattr default was running and causing an error even if attribute existed
-                btorconstraint = constraint.solver_term if hasattr(constraint, 'solver_term') \
-                                 else self._btor.Const(constraint)
-                self._btor.Assert(btorconstraint)
-                # for now adding raw assertion to match other solvers
-                # in the future add the wrapped assertion
-                self._assertions.append(btorconstraint)
-        else:
-            sort = getattr(constraints, 'sort', type(constraints))
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. ' +
-                                 'Received sort: {}'.format(constraints.sort))
-            # getattr default was running and causing an error even if attribute existed
-            btorconstraint = constraints.solver_term if hasattr(constraints, 'solver_term') \
-                             else self._btor.Const(constraints)
-            self._btor.Assert(btorconstraint)
-            # for now adding raw assertion to match other solvers
-            # in the future add the wrapped assertion
-            self._assertions.append(btorconstraint)
-
-    def assertions(self):
-        return self._assertions
-
-    def get_model(self):
-        if self.sat:
+    def GetModel(self):
+        if self.Sat:
             return self._btor.Print_model()
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
 
-    def get_value(self, var):
-        if self.sat:
-            return self._BoolectorResults[var.sort.__class__](var.solver_term)
-        elif self.sat is not None:
+    def GetValue(self, var):
+        if self.Sat:
+            # The value will be wrapped at the api level
+            return var
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')

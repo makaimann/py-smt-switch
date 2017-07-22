@@ -1,7 +1,5 @@
 from .. import sorts
-from .. import functions
-from .. import terms
-from .. import results
+from ..functions import func_enum
 from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
@@ -28,46 +26,42 @@ class CVC4Solver(SolverBase):
                            sorts.Int: self._em.integerType,
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
-        # Note: indexed operators don't index by .func because already reference unindexed function
-        self._CVC4Funs = {functions.Extract: self.CVC4.BitVectorExtract,
-                          functions.Concat.func: self.CVC4.BITVECTOR_CONCAT,
-                          functions.Zero_extend.func: self.CVC4.BITVECTOR_ZERO_EXTEND,
-                          functions.Equals.func: self.CVC4.EQUAL,
-                          functions.Not.func: self.CVC4.NOT,
-                          functions.And.func: self.CVC4.AND,
-                          functions.Or.func: self.CVC4.OR,
-                          functions.Ite.func: self.CVC4.ITE,
-                          functions.Sub.func: self.CVC4.MINUS,
-                          functions.Add.func: self.CVC4.PLUS,
-                          functions.LT.func: self.CVC4.LT,
-                          functions.LEQ.func: self.CVC4.LEQ,
-                          functions.GT.func: self.CVC4.GT,
-                          functions.GEQ.func: self.CVC4.GEQ,
-                          functions.BVAnd.func: self.CVC4.BITVECTOR_AND,
-                          functions.BVOr.func: self.CVC4.BITVECTOR_OR,
-                          functions.BVXor.func: self.CVC4.BITVECTOR_XOR,
-                          functions.BVAdd.func: self.CVC4.BITVECTOR_PLUS,
-                          functions.BVSub.func: self.CVC4.BITVECTOR_SUB,
-                          functions.BVMul.func: self.CVC4.BITVECTOR_MULT,
-                          functions.BVUdiv.func: self.CVC4.BITVECTOR_UDIV,
-                          functions.BVUrem.func: self.CVC4.BITVECTOR_UREM,
-                          functions.BVShl.func: self.CVC4.BITVECTOR_SHL,
-                          functions.BVAshr.func: self.CVC4.BITVECTOR_ASHR,
-                          functions.BVLshr.func: self.CVC4.BITVECTOR_LSHR,
-                          functions.BVUlt.func: self.CVC4.BITVECTOR_ULT,
-                          functions.BVUle.func: self.CVC4.BITVECTOR_ULE,
-                          functions.BVUgt.func: self.CVC4.BITVECTOR_UGT,
-                          functions.BVUge.func: self.CVC4.BITVECTOR_UGE,
-                          functions.BVSlt.func: self.CVC4.BITVECTOR_SLT,
-                          functions.BVSle.func: self.CVC4.BITVECTOR_SLE,
-                          functions.BVSgt.func: self.CVC4.BITVECTOR_SGT,
-                          functions.BVSge.func: self.CVC4.BITVECTOR_SGE,
-                          functions.BVNot.func: self.CVC4.BITVECTOR_NOT,
-                          functions.BVNeg.func: self.CVC4.BITVECTOR_NEG}
-        self._CVC4Results = {sorts.BitVec: results.CVC4BitVecResult,
-                             sorts.Int: results.CVC4IntResult,
-                             sorts.Real: results.CVC4RealResult,
-                             sorts.Bool: results.CVC4BoolResult}
+
+        self._CVC4Funs = {func_enum.Extract: self.CVC4.BitVectorExtract,
+                          func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
+                          func_enum.Zero_extend: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          func_enum.Equals: self.CVC4.EQUAL,
+                          func_enum.Not: self.CVC4.NOT,
+                          func_enum.And: self.CVC4.AND,
+                          func_enum.Or: self.CVC4.OR,
+                          func_enum.Ite: self.CVC4.ITE,
+                          func_enum.Sub: self.CVC4.MINUS,
+                          func_enum.Add: self.CVC4.PLUS,
+                          func_enum.LT: self.CVC4.LT,
+                          func_enum.LEQ: self.CVC4.LEQ,
+                          func_enum.GT: self.CVC4.GT,
+                          func_enum.GEQ: self.CVC4.GEQ,
+                          func_enum.BVAnd: self.CVC4.BITVECTOR_AND,
+                          func_enum.BVOr: self.CVC4.BITVECTOR_OR,
+                          func_enum.BVXor: self.CVC4.BITVECTOR_XOR,
+                          func_enum.BVAdd: self.CVC4.BITVECTOR_PLUS,
+                          func_enum.BVSub: self.CVC4.BITVECTOR_SUB,
+                          func_enum.BVMul: self.CVC4.BITVECTOR_MULT,
+                          func_enum.BVUdiv: self.CVC4.BITVECTOR_UDIV,
+                          func_enum.BVUrem: self.CVC4.BITVECTOR_UREM,
+                          func_enum.BVShl: self.CVC4.BITVECTOR_SHL,
+                          func_enum.BVAshr: self.CVC4.BITVECTOR_ASHR,
+                          func_enum.BVLshr: self.CVC4.BITVECTOR_LSHR,
+                          func_enum.BVUlt: self.CVC4.BITVECTOR_ULT,
+                          func_enum.BVUle: self.CVC4.BITVECTOR_ULE,
+                          func_enum.BVUgt: self.CVC4.BITVECTOR_UGT,
+                          func_enum.BVUge: self.CVC4.BITVECTOR_UGE,
+                          func_enum.BVSlt: self.CVC4.BITVECTOR_SLT,
+                          func_enum.BVSle: self.CVC4.BITVECTOR_SLE,
+                          func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
+                          func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
+                          func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
+                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -89,110 +83,68 @@ class CVC4Solver(SolverBase):
                             sorts.Real: create_real,
                             sorts.Bool: create_bool}
 
-    def reset(self):
-        self._smt.reset()
+    def Reset(self):
+        self._smt.Reset()
 
-    def check_sat(self):
+    def CheckSat(self):
         # rely on Assert for now
-        # chose this way so user can get assertions, but also aren't added twice
+        # chose this way so user can get Assertions, but also aren't added twice
         # for constraint in self.constraints:
         #    self._smt.assertFormula(constraint)
-        self.sat = self._smt.checkSat().isSat() == 1
-        return self.sat
+        self.Sat = self._smt.checkSat().isSat() == 1
+        return self.Sat
 
-    def set_logic(self, logicstr):
+    def SetLogic(self, logicstr):
         self._smt.setLogic(logicstr)
 
     # TODO: Need to make this more general.
     # I don't think we always create an SExpr from the value...
     # Also need to check if optionstr is a standard option
-    def set_option(self, optionstr, value):
+    def SetOption(self, optionstr, value):
         self._smt.setOption(optionstr, self.CVC4.SExpr(value))
 
-    # Note: currently not different than set_option
-    def set_nonstandard_option(self, optionstr, value):
-        self._smt.setOption(optionstr, self.CVC4.SExpr(value))
-
-    def declare_const(self, name, sort):
+    def DeclareConst(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
-        const = terms.CVC4Term(self, functions.No_op, cvc4const, [sort])
-        return const
+        return cvc4const
 
-    def theory_const(self, sort, value):
+    def TheoryConst(self, sort, value):
         cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
-        tconst = terms.CVC4Term(self, functions.No_op, cvc4tconst, [sort])
-        return tconst
+        return cvc4tconst
 
     # if config strict, check arity and don't allow python objects as arguments
-    def apply_fun(self, op, *args):
+    def ApplyFun(self, f_enum, indices, *args):
 
-        # commented out while updating functions
-        # if config.strict and len(args) < fun.arity['min'] or len(args) > fun.arity['max']:
-        #     raise ValueError('In strict mode you must respect function arity:' +
-        #                      ' {}: arity = {}'.format(fun, fun.arity))
-
-        cvc4fun = self._CVC4Funs[op.func]
-        # handle list argument
-        if isinstance(args[0], list):
-            args = args[0]
-
-        if config.strict:
-            solver_args = [arg.solver_term for arg in args]
-        else:
-            # find a cvc4 term to infer the sort
-            # TODO: make this more robust
-            cvc4term = list(filter(lambda x: isinstance(x, terms.CVC4Term), args))[-1]
-            solver_args = tuple(map(lambda arg: arg.solver_term
-                                    if isinstance(arg, terms.CVC4Term)
-                                    else
-                                    self.theory_const(cvc4term.sort, arg).solver_term,
-                                    args))
+        cvc4fun = self._CVC4Funs[f_enum]
 
         # check if just indexer or needs to be evaluated
         # TODO: handle situation where all args together
         if not isinstance(cvc4fun, int):
-            cvc4fun = self._em.mkConst(cvc4fun(*op.args))
-        cvc4terms = self._em.mkExpr(cvc4fun, solver_args)
-        expr = terms.CVC4Term(self, op, cvc4terms, list(args))
-        return expr
+            cvc4fun = self._em.mkConst(cvc4fun(*indices))
+        cvc4expr = self._em.mkExpr(cvc4fun, args)
+        return cvc4expr
 
-    def Assert(self, constraints):
-        if isinstance(constraints, list):
-            for constraint in constraints:
-                sort = getattr(constraint, 'sort', type(constraint))
-                # check that sort is bool (could be python bool)
-                if sort != bool and sort != sorts.Bool():
-                    raise ValueError('Can only assert formulas of sort Bool. ' +
-                                     'Received sort: {}'.format(sort))
-                self._smt.assertFormula(getattr(constraint, 'solver_term',
-                                                self._em.mkBoolConst(constraint)))
-        else:
-            sort = getattr(constraints, 'sort', type(constraints))
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. ' +
-                                 'Received sort: {}'.format(sort))
-            self._smt.assertFormula(getattr(constraints, 'solver_term',
-                                            self._em.mkBoolConst(constraints)))
+    def Assert(self, c):
+            self._smt.assertFormula(c)
 
-    def assertions(self):
+    def Assertions(self):
         # TODO: fix iter error
         # Wanted these to be an iter but CVC4 threw an exception
         return [expr.toString() for expr in self._smt.getAssertions()]
 
-    def get_model(self):
-        if self.sat:
+    def GetModel(self):
+        if self.Sat:
             # TODO: Fix this
             return self._smt.getValue
-        elif self.sat is not None:
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
 
-    def get_value(self, var):
-        if self.sat:
-            return self._CVC4Results[var.sort.__class__](self._smt.getValue(var.solver_term))
-        elif self.sat is not None:
+    def GetValue(self, var):
+        if self.Sat:
+            return self._smt.getValue(var)
+        elif self.Sat is not None:
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')

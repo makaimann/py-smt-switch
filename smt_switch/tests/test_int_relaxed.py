@@ -1,20 +1,10 @@
 import pytest
+import smt_switch
 from smt_switch.config import config
-from smt_switch import sorts
-from smt_switch import functions
-from smt_switch import terms  # used in eval
-from . import all_solvers
+from smt_switch.tests import all_solvers
 
-And = functions.And
-Or = functions.Or
-Ite = functions.Ite
-LT = functions.LT
-LEQ = functions.LEQ
-GT = functions.GT
-GEQ = functions.GEQ
-Add = functions.Add
-Sub = functions.Sub
-Equals = functions.Equals
+
+smt = smt_switch.smt
 
 
 def test_lia():
@@ -29,32 +19,32 @@ def test_lia():
     '''
 
     config.strict = False
-    
-    for name, solver in all_solvers.items():  # iterate through the solvers
-        s = solver()
-        s.set_logic('QF_LIA')
-        isort = sorts.construct_sort(sorts.Int)
-        i1 = s.declare_const('i1', isort)
-        i2 = s.declare_const('i2', isort)
-        i3 = s.declare_const('i3', isort)
-        assert isinstance(i1, eval('terms.{}Term'.format(name)))
+
+    for name in all_solvers:  # iterate through the solvers
+        s = smt(name)
+        s.SetLogic('QF_LIA')
+        isort = s.ConstructSort(s.Int)
+        i1 = s.DeclareConst('i1', isort)
+        i2 = s.DeclareConst('i2', isort)
+        i3 = s.DeclareConst('i3', isort)
+        assert isinstance(i1, eval('smt_switch.terms.{}Term'.format(name)))
 
         i1plusi2 = i1 + i2
 
         assert i1 in i1plusi2.children
         assert i2 in i1plusi2.children
-        assert i1plusi2.op == Add
+        assert i1plusi2.op == s.Add
 
         # demonstrate interpreted python constants
-        formula1 = s.apply_fun(LEQ, i1plusi2, 6)
+        formula1 = s.ApplyFun(s.LEQ, i1plusi2, 6)
 
         # demonstrate overloaded operators
         formula2 = i3 - i2 >= 2
-    
-        assert isinstance(formula1, eval('terms.{}Term'.format(name)))
+
+        assert isinstance(formula1, eval('smt_switch.terms.{}Term'.format(name)))
         assert i1plusi2 in formula1.children
-        assert formula1.op == LEQ
-        assert formula1.sort == sorts.Bool()
+        assert formula1.op == s.LEQ
+        assert formula1.sort == s.Bool()
 
         s.Assert(formula1)
         s.Assert(formula2)
@@ -65,10 +55,11 @@ def test_lia():
         s.Assert(i3 < 2)
 
         # check satisfiability
-        s.check_sat()
+        s.CheckSat()
 
         # expect UNSAT
-        assert not s.sat
+        assert not s.Sat
+
 
 def test_ite():
     '''
@@ -83,49 +74,49 @@ def test_ite():
 
     config.strict = False
 
-    for name, solver in all_solvers.items():
-        s = solver()
+    for name in all_solvers:
+        s = smt(name)
 
-        x1 = s.declare_const('x1', sorts.Int())
-        x2 = s.declare_const('x2', sorts.Int())
-        assert x1.sort == sorts.Int()
+        x1 = s.DeclareConst('x1', s.Int())
+        x2 = s.DeclareConst('x2', s.Int())
+        assert x1.sort == s.Int()
 
         x1pos = x1 > 0
-        assert x1pos.op == GT
-        assert x1pos.sort == sorts.Bool()
+        assert x1pos.op == s.GT
+        assert x1pos.sort == s.Bool()
 
-        y1 = s.apply_fun(Ite, x1pos, x1, 0)
-        assert isinstance(y1, eval('terms.{}Term'.format(name)))
-        
+        y1 = s.ApplyFun(s.Ite, x1pos, x1, 0)
+        assert isinstance(y1, eval('smt_switch.terms.{}Term'.format(name)))
+
         # demonstrate callable functions 
-        y2 = Ite(x2 > 0, x2, 0)
-        
+        y2 = s.Ite(x2 > 0, x2, 0)
+
         assert x1 in y1.children
         assert x1pos in y1.children
-        assert y1.sort == sorts.Int()
+        assert y1.sort == s.Int()
 
         y1plusy2GEQ3 = y1 + y2 >= 3
-        assert y1plusy2GEQ3.op == GEQ
-        three = s.theory_const(sorts.Int(), 3)
+        assert y1plusy2GEQ3.op == s.GEQ
+        three = s.TheoryConst(s.Int(), 3)
         assert three in y1plusy2GEQ3.children
-        assert y1plusy2GEQ3.sort == sorts.Bool()
+        assert y1plusy2GEQ3.sort == s.Bool()
 
-        x2neg = s.apply_fun(LT, x2, 0)
+        x2neg = s.ApplyFun(s.LT, x2, 0)
         assert x2neg.__repr__() == 'x2 < 0' or x2neg.__repr__() == '0 > x2'
 
-        # make assertions in solver
+        # make Assertions in solver
         s.Assert(y1plusy2GEQ3)
         s.Assert(y1 <= 2)
         s.Assert(x2neg)
 
         # check that sat is not assigned
-        assert s.sat is None
+        assert s.Sat is None
 
         # check satisfiability
-        s.check_sat()
+        s.CheckSat()
 
         # expect UNSAT
-        assert not s.sat
+        assert not s.Sat
 
 
 if __name__ == "__main__":
