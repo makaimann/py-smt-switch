@@ -35,7 +35,7 @@ Finally, you will need to provide a function for computing the function's output
 Examples
 
 * Equals: lambda x: sorts.Bool()  -- return sort is always bool
-* Ite: lambda x, y, z: z          -- return sort is the same as it's arguments
+* Ite: lambda x, y, z: z.sort     -- return sort is the same as it's arguments
 
 Note, for now term's childrens are all kept track of at the smt-switch level. In a future version, term's sort and children will be queried from the underlying smt solver. This is important because of internal simplification, but has not been implemented yet.
 
