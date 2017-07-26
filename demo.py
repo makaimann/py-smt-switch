@@ -18,7 +18,7 @@ from smt_switch import smt, config
 # As of now, there are many unsupported features and theories
 #  - The only sorts thus far are BitVec, Bool, Int and Real
 #  - The only options supported by all solvers are produce-models and produce-assertions
-#  - There is now declare-fun equivalent, however you can write a Python function
+#  - There is no declare-fun equivalent, however you can write a Python function
 #      to get the same behavior
 #  - There is no support for incremental solving, yet
 #
