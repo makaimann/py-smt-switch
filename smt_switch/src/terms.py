@@ -24,7 +24,7 @@ class TermBase(metaclass=ABCMeta):
         else:
             self._children = []
 
-        # Note: for now, fun is always a partial function
+        # TODO: remove this and handle in the specific terms
         self._sort = fun2sort[op.enum](*(op.args + tuple(children)))
 
     @property
@@ -134,22 +134,6 @@ class TermBase(metaclass=ABCMeta):
         else:
             raise ValueError('Slicing not defined for {}'.format(idx))
 
-    def as_bitstr(self, width=None):
-        ''' Represent as bit string '''
-        # this uses child class's as_int, so it can be fully general
-        if self.sort.__class__ not in {self._smt.BitVec, self._smt.Int}:
-            raise ValueError('Term\'s sort cannot be represented as a bit string.')
-
-        i = self.as_int()
-
-        if width is None:
-            width = self.sort.width
-
-        if width < i.bit_length():
-            raise ValueError('Decimal {} will not fit in width = {} bits'.format(i, width))
-
-        return '{0:b}'.format(i).zfill(width)
-
 
 class CVC4Term(TermBase):
     def __init__(self, smt, op, solver_term, children):
@@ -160,7 +144,7 @@ class CVC4Term(TermBase):
 
     def as_int(self):
         if self.sort == self._smt.Int():
-            return int(self._value.getConstRational().gteDouble())
+            return int(self._value.getConstRational().getDouble())
 
         elif self.sort.__class__ == self._smt.BitVec:
             return self._value.getConstBitVector().toInteger().toUnsignedInt()
@@ -186,6 +170,9 @@ class CVC4Term(TermBase):
             raise ValueError
 
         return self._value.getConstBoolean()
+
+    def as_bitstr(self):
+        return self._value.getConstBitVector().toString()
 
 
 class Z3Term(TermBase):
@@ -213,6 +200,9 @@ class Z3Term(TermBase):
 
         return bool(self._value)
 
+    def as_bitstr(self):
+        return '{0:b}'.format(int(self._value.as_string())).zfill(self.sort.width)
+
 
 class BoolectorTerm(TermBase):
     def __init__(self, smt, op, solver_term, children):
@@ -234,7 +224,8 @@ class BoolectorTerm(TermBase):
 
         return bool(self._value.assignment)
 
-
+    def as_bitstr(self):
+        return self._value.assignment
 
 
 def __bool_fun(*args):

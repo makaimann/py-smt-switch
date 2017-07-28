@@ -199,8 +199,26 @@ def test_bv_arithops():
         assert bvprodr.as_int() == 10
         assert bvshiftedr.as_int() == 2
 
+def test_bv128():
+    for name in bv_solvers:
+        s = smt(name)
+        s.SetOption('produce-models', 'true')
+        s.SetLogic('QF_BV')
+        bv = s.DeclareConst('bv', s.BitVec(128))
+        import sys
+        bignum = s.TheoryConst(s.BitVec(128), sys.maxsize)
+        s.Assert(s.BVUgt(bv, bignum))
+        s.CheckSat()
+        v = s.GetValue(bv)
+        try:
+            v.as_bitstr()
+        except Exception:
+            assert False, 'Issue representing bit vector of width 128'
+
+
 if __name__ == "__main__":
     test_bv_ops()
     test_bv_extract()
     test_bv_boolops()
     test_bv_arithops()
+    test_bv128()
