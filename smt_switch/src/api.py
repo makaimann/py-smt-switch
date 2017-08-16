@@ -92,6 +92,7 @@ class smt:
         self.solver.SetOption(optionstr, value)
 
     def DeclareConst(self, name, sort):
+        assert isinstance(name, str), 'name parameter should be a string'
         sconst = self.solver.DeclareConst(name, sort)
         return self.__term_map[self.solver.__class__](self,
                                                       self.No_op,

@@ -2,7 +2,7 @@ from abc import ABCMeta
 from . import sorts
 from ..config import config
 from fractions import Fraction
-from .functions import func_enum
+from .functions import func_enum, func_symbols, operator
 import re
 
 
@@ -24,9 +24,6 @@ class TermBase(metaclass=ABCMeta):
             self._children = children
         else:
             self._children = []
-
-        # TODO: remove this and handle in the specific terms
-        self._sort = fun2sort[op.enum](*(op.args + tuple(children)))
 
     @property
     def children(self):
@@ -218,6 +215,13 @@ class Z3Term(TermBase):
         else:
             raise ValueError('Unable to determine sort of {}'.format(self))
 
+        # create children
+        self._children = []
+        for c in solver_term.children():
+            enum_op = smt.solver._z3Funs2swFuns[c.decl().kind()]
+            op = operator(smt, enum_op, func_symbols[enum_op.name])
+            self._children.append(Z3Term(smt, op, c, []))
+
     def __repr__(self):
         if config.strict:
             return self.solver_term.sexpr()
@@ -241,6 +245,10 @@ class Z3Term(TermBase):
 
     def as_bitstr(self):
         return '{0:b}'.format(int(self._value.as_string())).zfill(self.sort.width)
+
+    @property
+    def children(self):
+        return self._children
 
 
 class BoolectorTerm(TermBase):
