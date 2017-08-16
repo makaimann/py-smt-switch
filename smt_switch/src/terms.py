@@ -3,6 +3,7 @@ from . import sorts
 from ..config import config
 from fractions import Fraction
 from .functions import func_enum
+import re
 
 
 class TermBase(metaclass=ABCMeta):
@@ -138,6 +139,26 @@ class TermBase(metaclass=ABCMeta):
 class CVC4Term(TermBase):
     def __init__(self, smt, op, solver_term, children):
         super().__init__(smt, op, solver_term, children)
+        self._str2sort = {'int': lambda p: sorts.Int(),
+                          'real': lambda p: sorts.Real(),
+                          'bitvector': lambda p: sorts.BitVec(int(p)),
+                          'bitvec': lambda p: sorts.BitVec(int(p)),
+                          'bool': lambda p: sorts.Bool()}
+
+        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool)\s?\(?(?P<param>\d+)?\)?')
+
+        cvc4sortstr = solver_term.getType().toString().lower()
+        match = p.search(cvc4sortstr)
+
+        if not match:
+            raise ValueError("Unknown type {}".format(cvc4sortstr))
+
+        assert match.group('sort') in self._str2sort, 'Found {} for string {}'.format(match.group('sort'), cvc4sortstr)
+
+        if match.group('sort') == 'BITVECTOR':
+            assert match.group('param'), 'BitVecs must have a width'
+
+        self._sort = self._str2sort[match.group('sort')](match.group('param'))
 
     def __repr__(self):
         return self.solver_term.toString()
@@ -174,10 +195,28 @@ class CVC4Term(TermBase):
     def as_bitstr(self):
         return self._value.getConstBitVector().toString()
 
+    @property
+    def sort(self):
+        return self._sort
+
 
 class Z3Term(TermBase):
     def __init__(self, smt, op, solver_term, children):
         super().__init__(smt, op, solver_term, children)
+
+        z3 = smt.solver.z3
+        sortmap = {z3.Z3_BOOL_SORT: sorts.Bool(),
+                   z3.Z3_INT_SORT: sorts.Int(),
+                   z3.Z3_REAL_SORT: sorts.Real()}
+
+        sts = solver_term.sort()
+
+        if sts.kind() == z3.Z3_BV_SORT:
+            self._sort = sorts.BitVec(sts.size())
+        elif sts.kind() in sortmap:
+            self._sort = sortmap[sts.kind()]
+        else:
+            raise ValueError('Unable to determine sort of {}'.format(self))
 
     def __repr__(self):
         if config.strict:
@@ -207,6 +246,11 @@ class Z3Term(TermBase):
 class BoolectorTerm(TermBase):
     def __init__(self, smt, op, solver_term, children):
         super().__init__(smt, op, solver_term, children)
+        boolector = smt.solver.boolector
+        sortmap = {boolector.BoolectorBVNode: lambda w: sorts.BitVec(w),
+                   boolector.BoolectorConstNode: lambda w: sorts.BitVec(w)}
+        # Need BoolSort too -- BoolectorBoolNode
+        self._sort = sortmap[type(solver_term)](solver_term.width)
 
     def __repr__(self):
         # This isn't the best solution, but boolector's __str__ and __repr__ are not implemented
@@ -226,6 +270,10 @@ class BoolectorTerm(TermBase):
 
     def as_bitstr(self):
         return self._value.assignment
+
+    @property
+    def sort(self):
+        return self._sort
 
 
 def __bool_fun(*args):

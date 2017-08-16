@@ -102,7 +102,7 @@ def test_bv_boolops():
 
         bvnotresulteq = s.ApplyFun(Equals, bvnotresult, notbv3)
 
-        assert bvnotresulteq.sort == s.Bool()
+        assert bvnotresulteq.sort == s.Bool() or bvnotresulteq.sort == s.BitVec(1)
 
         fifteen = s.TheoryConst(bvsort, 15)
         twoforty = s.TheoryConst(bvsort, 240)

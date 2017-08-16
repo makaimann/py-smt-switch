@@ -144,8 +144,8 @@ class smt:
         for constraint in constraints:
             sort = getattr(constraint, 'sort', type(constraint))
 
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. '
+            if sort not in {bool, sorts.Bool(), sorts.BitVec(1)}:
+                raise ValueError('Can only assert formulas of sort Bool/BitVec(1). '
                                  'Received sort: {}'.format(sort))
 
             if hasattr(constraint, 'solver_term'):
