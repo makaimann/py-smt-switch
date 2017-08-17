@@ -157,6 +157,20 @@ class CVC4Term(TermBase):
 
         self._sort = self._str2sort[match.group('sort')](match.group('param'))
 
+        # query children from solver
+        self._children = []
+        for c in solver_term.getChildren():
+            # get the op
+            k = c.getKind()
+            if k in smt.solver._CVC4Funs.rev:
+                enum_op = smt.solver._CVC4Funs.rev[k]
+            elif k in smt.solver._CVC4InvOps:
+                enum_op = smt.solver._CVC4InvOps[k]
+            else:
+                raise KeyError('{} not a recognized CVC4 enum'.format(k))
+            op = operator(smt, enum_op, func_symbols[enum_op.name])
+            self._children.append(CVC4Term(smt, op, c, []))
+
     def __repr__(self):
         return self.solver_term.toString()
 
