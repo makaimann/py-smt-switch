@@ -92,7 +92,8 @@ class Z3Solver(SolverBase):
                  sorts.Int: z3.IntVal,
                  sorts.Real: z3.RealVal,
                  sorts.Bool: lambda x: x}
-    _z3Options = {'produce-models': 'model'}
+    _z3Options = {'produce-models': 'model',
+                  'random-seed': 'smt.random_seed'}
 
     def __init__(self):
         super().__init__()
