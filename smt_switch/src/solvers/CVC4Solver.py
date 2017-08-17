@@ -29,7 +29,7 @@ class CVC4Solver(SolverBase):
 
         self._CVC4Funs = {func_enum.Extract: self.CVC4.BitVectorExtract,
                           func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
-                          func_enum.Zero_extend: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          func_enum.ZeroExt: self.CVC4.BITVECTOR_ZERO_EXTEND,
                           func_enum.Equals: self.CVC4.EQUAL,
                           func_enum.Not: self.CVC4.NOT,
                           func_enum.And: self.CVC4.AND,

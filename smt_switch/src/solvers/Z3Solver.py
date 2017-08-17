@@ -13,7 +13,7 @@ class Z3Solver(SolverBase):
 
     _z3Funs = {func_enum.Extract: z3.Extract,
                func_enum.Concat: z3.Concat,
-               func_enum.Zero_extend: z3.ZeroExt,
+               func_enum.ZeroExt: z3.ZeroExt,
                func_enum.Not: z3.Not,
                func_enum.Equals: lambda arg1, arg2: arg1 == arg2,
                func_enum.And: z3.And,
@@ -49,7 +49,7 @@ class Z3Solver(SolverBase):
 
     _z3Funs2swFuns = {z3.Z3_OP_EXTRACT: func_enum.Extract,
                       z3.Z3_OP_CONCAT: func_enum.Concat,
-                      z3.Z3_OP_ZERO_EXT: func_enum.Zero_extend,
+                      z3.Z3_OP_ZERO_EXT: func_enum.ZeroExt,
                       z3.Z3_OP_NOT: func_enum.Not,
                       z3.Z3_OP_EQ: func_enum.Equals,
                       z3.Z3_OP_AND: func_enum.And,
