@@ -105,6 +105,10 @@ class TermBase(metaclass=ABCMeta):
             other = self._smt.TheoryConst(self.sort, other)
         return self._smt.ApplyFun(self._smt.BVAshr, self, other)
 
+    def __invert__(self):
+        assert self.sort.__class__ == sorts.BitVec
+        return self._smt.ApplyFun(self._smt.BVNot, self)
+
     def __getitem__(self, idx):
         if self.sort.__class__ != self._smt.BitVec:
             raise ValueError('Slicing only defined for BitVec sorts')

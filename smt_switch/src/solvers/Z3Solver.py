@@ -100,7 +100,7 @@ class Z3Solver(SolverBase):
         self._solver = self.z3.Solver()
 
     def Reset(self):
-        self._solver.Reset()
+        self._solver.reset()
 
     def CheckSat(self):
         # rely on Assert for now
@@ -140,7 +140,7 @@ class Z3Solver(SolverBase):
         # had issue with returning an iterable for CVC4
         # thus to keep things consistent, returning a list here
         # it also mimics both z3 and cvc4's normal behavior to use a list
-        return [assertion.sexpr() for assertion in self._solver.Assertions()]
+        return [assertion.sexpr() for assertion in self._solver.assertions()]
 
     def GetModel(self):
         if self.Sat:
