@@ -7,27 +7,13 @@ import re
 
 
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, smt, op, solver_term, children):
+    def __init__(self, smt, solver_term, sort, op=None, children=None):
         self._smt = smt
-        self._op = op
         self._solver_term = solver_term
         self._value = None
-        # Note: instead of querying solvers and translating,
-        #       it's easier to just pass this information
-        #       directly since it's always known when
-        #       instantiating a term
-        # have to pass in sort instead of getting from op
-        # because of No_op case i.e. when constructing a const
-        # -- There are no arguments, so sort information is lost
-        # unless passed in directly
-        if op != smt.No_op:
-            self._children = children
-        else:
-            self._children = []
-
-    @property
-    def children(self):
-        return self._children
+        self._sort = sort
+        self._op = op
+        self._children = children
 
     @property
     def sort(self):
@@ -36,6 +22,10 @@ class TermBase(metaclass=ABCMeta):
     @property
     def op(self):
         return self._op
+
+    @property
+    def children(self):
+        return self._children
 
     @property
     def solver_term(self):
@@ -138,8 +128,7 @@ class TermBase(metaclass=ABCMeta):
 
 
 class CVC4Term(TermBase):
-    def __init__(self, smt, op, solver_term, children):
-        super().__init__(smt, op, solver_term, children)
+    def __init__(self, smt, solver_term):
         self._str2sort = {'int': lambda p: sorts.Int(),
                           'real': lambda p: sorts.Real(),
                           'bitvector': lambda p: sorts.BitVec(int(p)),
@@ -159,21 +148,36 @@ class CVC4Term(TermBase):
         if match.group('sort') == 'BITVECTOR':
             assert match.group('param'), 'BitVecs must have a width'
 
-        self._sort = self._str2sort[match.group('sort')](match.group('param'))
+        sort = self._str2sort[match.group('sort')](match.group('param'))
+
+        # TODO: handle this check more elegantly -- perhaps a lambda in the dict
+        extk= -1
+        if solver_term.hasOperator():
+            cvc4_op = solver_term.getOperator()
+            extk = cvc4_op.getKind()
+
+        k = solver_term.getKind()
+
+        if extk == smt._solver.CVC4.BITVECTOR_EXTRACT_OP:
+            assert 'cvc4_op' in locals()
+            ext_op = cvc4_op.getConstBitVectorExtract()
+            op = smt.Extract(ext_op.high, ext_op.low)
+        elif k in smt.solver._CVC4Funs.rev:
+            enum_op = smt.solver._CVC4Funs.rev[k]
+            op = operator(smt, enum_op, func_symbols[enum_op.name])
+        elif k in smt.solver._CVC4InvOps:
+            enum_op = smt.solver._CVC4InvOps[k]
+            op = operator(smt, enum_op, func_symbols[enum_op.name])
+        else:
+            raise KeyError('{} not a recognized CVC4 enum'.format(k))
 
         # query children from solver
-        self._children = []
+        children = []
         for c in solver_term.getChildren():
-            # get the op
-            k = c.getKind()
-            if k in smt.solver._CVC4Funs.rev:
-                enum_op = smt.solver._CVC4Funs.rev[k]
-            elif k in smt.solver._CVC4InvOps:
-                enum_op = smt.solver._CVC4InvOps[k]
-            else:
-                raise KeyError('{} not a recognized CVC4 enum'.format(k))
-            op = operator(smt, enum_op, func_symbols[enum_op.name])
-            self._children.append(CVC4Term(smt, op, c, []))
+            children.append(CVC4Term(smt, c))
+
+        super().__init__(smt, solver_term, sort, op, children)
+
 
     def __repr__(self):
         return self.solver_term.toString()
@@ -210,14 +214,9 @@ class CVC4Term(TermBase):
     def as_bitstr(self):
         return self._value.getConstBitVector().toString()
 
-    @property
-    def sort(self):
-        return self._sort
-
 
 class Z3Term(TermBase):
-    def __init__(self, smt, op, solver_term, children):
-        super().__init__(smt, op, solver_term, children)
+    def __init__(self, smt, solver_term):
 
         z3 = smt.solver.z3
         sortmap = {z3.Z3_BOOL_SORT: sorts.Bool(),
@@ -227,18 +226,25 @@ class Z3Term(TermBase):
         sts = solver_term.sort()
 
         if sts.kind() == z3.Z3_BV_SORT:
-            self._sort = sorts.BitVec(sts.size())
+            sort = sorts.BitVec(sts.size())
         elif sts.kind() in sortmap:
-            self._sort = sortmap[sts.kind()]
+            sort = sortmap[sts.kind()]
         else:
             raise ValueError('Unable to determine sort of {}'.format(self))
 
+        enum_op = smt.solver._z3Funs2swFuns[solver_term.decl().kind()]
+        op = operator(smt, enum_op, func_symbols[enum_op.name])
+
+        # TODO: Find better solution than this
+        if enum_op == func_enum.Extract:
+            op = smt.Extract(*solver_term.decl().params())
+
         # create children
-        self._children = []
+        children = []
         for c in solver_term.children():
-            enum_op = smt.solver._z3Funs2swFuns[c.decl().kind()]
-            op = operator(smt, enum_op, func_symbols[enum_op.name])
-            self._children.append(Z3Term(smt, op, c, []))
+            children.append(Z3Term(smt, c))
+
+        super().__init__(smt, solver_term, sort, op, children)
 
     def __repr__(self):
         if config.strict:
@@ -264,19 +270,14 @@ class Z3Term(TermBase):
     def as_bitstr(self):
         return '{0:b}'.format(int(self._value.as_string())).zfill(self.sort.width)
 
-    @property
-    def children(self):
-        return self._children
-
 
 class BoolectorTerm(TermBase):
-    def __init__(self, smt, op, solver_term, children):
-        super().__init__(smt, op, solver_term, children)
+    def __init__(self, smt, solver_term):
         boolector = smt.solver.boolector
         sortmap = {boolector.BoolectorBVNode: lambda w: sorts.BitVec(w),
                    boolector.BoolectorConstNode: lambda w: sorts.BitVec(w)}
-        # Need BoolSort too -- BoolectorBoolNode
-        self._sort = sortmap[type(solver_term)](solver_term.width)
+        sort = sortmap[type(solver_term)](solver_term.width)
+        super().__init__(smt, solver_term, sort)
 
     def __repr__(self):
         # This isn't the best solution, but boolector's __str__ and __repr__ are not implemented
@@ -298,8 +299,12 @@ class BoolectorTerm(TermBase):
         return self._value.assignment
 
     @property
-    def sort(self):
-        return self._sort
+    def op(self):
+        raise NotImplementedError('Boolector does not support querying the operator of a term.')
+
+    @property
+    def children(self):
+        raise NotImplementedError('Boolector does not support querying children.')
 
 
 def __bool_fun(*args):

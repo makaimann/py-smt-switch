@@ -49,7 +49,7 @@ def test_lia():
 
         assert isinstance(formula1, eval('smt_switch.terms.{}Term'.format(name)))
         assert i1plusi2 in formula1.children
-        assert formula1.op == s.LEQ
+        assert formula1.op in {s.LEQ, s.GEQ}  # could be rewritten
         assert formula1.sort == s.Bool()
 
         s.Assert(formula1)
@@ -92,7 +92,7 @@ def test_ite():
 
         x1pos = s.ApplyFun(s.GT, x1, zero)
         x2pos = s.ApplyFun(s.GT, x2, zero)
-        assert x1pos.op == s.GT
+        assert x1pos.op in {s.GT, s.LT}
         assert x1pos.sort == s.Bool()
         assert zero in x1pos.children
 
@@ -107,7 +107,7 @@ def test_ite():
 
         three = s.TheoryConst(isort, 3)
         y1plusy2GEQ3 = s.ApplyFun(s.GEQ, y1plusy2, three)
-        assert y1plusy2GEQ3.op == s.GEQ
+        assert y1plusy2GEQ3.op in {s.GEQ, s.LEQ}  # could be rewritten
         assert three in y1plusy2GEQ3.children
 
         two = s.TheoryConst(isort, 2)
