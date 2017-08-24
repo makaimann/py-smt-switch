@@ -52,7 +52,8 @@ class BoolectorSolver(SolverBase):
         #       so smt_switch is not either (specifically for Boolector)
         # self._BoolectorResults = {sorts.BitVec: results.BoolectorBitVecResult,
         #                           sorts.Bool: results.BoolectorBitVecResult}
-        self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN}
+        self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN,
+                                  'random-seed': self.boolector.BTOR_OPT_SEED}
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV']

@@ -3,6 +3,7 @@ from ..functions import func_enum
 from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
+from smt_switch.util import reversabledict
 
 
 class CVC4Solver(SolverBase):
@@ -27,9 +28,10 @@ class CVC4Solver(SolverBase):
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
 
-        self._CVC4Funs = {func_enum.Extract: self.CVC4.BitVectorExtract,
+        self._CVC4Funs = \
+          reversabledict({func_enum.Extract: self.CVC4.BitVectorExtract,
                           func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
-                          func_enum.Zero_extend: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          func_enum.ZeroExt: self.CVC4.BITVECTOR_ZERO_EXTEND,
                           func_enum.Equals: self.CVC4.EQUAL,
                           func_enum.Not: self.CVC4.NOT,
                           func_enum.And: self.CVC4.AND,
@@ -61,7 +63,13 @@ class CVC4Solver(SolverBase):
                           func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
                           func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
                           func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
-                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG}
+                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG})
+
+        # all constants are No_op
+        self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
+                            self.CVC4.CONST_RATIONAL: func_enum.No_op,
+                            self.CVC4.CONST_BITVECTOR: func_enum.No_op,
+                            self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -97,9 +105,6 @@ class CVC4Solver(SolverBase):
     def SetLogic(self, logicstr):
         self._smt.setLogic(logicstr)
 
-    # TODO: Need to make this more general.
-    # I don't think we always create an SExpr from the value...
-    # Also need to check if optionstr is a standard option
     def SetOption(self, optionstr, value):
         self._smt.setOption(optionstr, self.CVC4.SExpr(value))
 

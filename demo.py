@@ -111,7 +111,8 @@ def strict_seq(solvers):
         x2eqy0 = s.ApplyFun(s.Equals, x_2, y_0)
         y1eqx0 = s.ApplyFun(s.Equals, y_1, x_0)
 
-        assert y1eqx0.sort == s.Bool()
+        assert y1eqx0.sort == s.Bool() or \
+          n == 'Boolector' and y1eqx0.sort == s.BitVec(1)  # boolector does not distinguish between bool and BV(1)
 
         s.Assert(s.ApplyFun(s.Not,
                             s.ApplyFun(s.And,
@@ -247,8 +248,12 @@ def strict_example(solvers):
         for b1, b2 in zip(bv_list[:4], bv_list[1:]):
             val1 = s.GetValue(s.Extract(7, 4, b1))
             val2 = s.GetValue(ext3_0(b2))
-            print(val1.op, b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
-                  val2.op, b2, '= 0b{}'.format(val2.as_bitstr()))
+            if n != 'Boolector':
+                print(val1.op, b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
+                      val2.op, b2, '= 0b{}'.format(val2.as_bitstr()))
+            else:
+                print(b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
+                      b2, '= 0b{}'.format(val2.as_bitstr()))
 
         print()
 
@@ -311,8 +316,12 @@ def relaxed_example(solvers):
         for b1, b2 in zip(bv_list[:4], bv_list[1:]):
             val1 = s.GetValue(b1[7:4])
             val2 = s.GetValue(ext3_0(b2))
-            print(val1.op, b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
-                  val2.op, b2, '= 0b{}'.format(val2.as_bitstr()))
+            if n != 'Boolector':
+                print(val1.op, b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
+                      val2.op, b2, '= 0b{}'.format(val2.as_bitstr()))
+            else:
+                print(b1, '= 0b{}'.format(val1.as_bitstr()) + ',',
+                      b2, '= 0b{}'.format(val2.as_bitstr()))
 
         print()
 

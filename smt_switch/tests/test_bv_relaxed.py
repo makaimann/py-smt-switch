@@ -77,7 +77,9 @@ def test_bv_extract():
         assert x_31_1.sort == x_30_0.sort
         assert x_31_31.sort == x_0_0.sort
 
-        assert x_31_1.op == s.Extract(31, 1)
+        if name != 'Boolector':
+            # Boolector is streamlined/optimized and does not keep track of op
+            assert x_31_1.op == s.Extract(31, 1)
 
         assert x_31_1.sort == s.BitVec(31)
 
@@ -125,7 +127,10 @@ def test_bv_boolops():
         bvnotresult = bvnot(bv3)
 
         assert bvresult2.sort == s.BitVec(8)
-        assert bvresult2.op == bvor
+
+        if name != 'Boolector':
+            # Boolector is streamlined/optimized and does not support querying opt
+            assert bvresult2.op == bvor
 
         # Assert formulas
         s.Assert(bv1 == 15)
@@ -140,11 +145,6 @@ def test_bv_boolops():
         bvr2 = s.GetValue(bvresult2)
         bvnr = s.GetValue(bvnotresult)
 
-        # make Assertions about values
-        # still figuring out how to get z3 and boolector to print s-lib format for results
-        # assert bvr1.__repr__() == '0' or bvr1.__repr__() == '0bin00000000'
-        # assert bvr2.__repr__() == '245' or bvr2.__repr__() == '0bin11110101'
-        # assert bvnr.__repr__() == '170' or bvnr.__repr__() == '0bin10101010'
         assert bvr1.as_int() == 0
         assert bvr2.as_int() == 245
         assert bvnr.as_int() == 170

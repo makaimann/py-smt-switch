@@ -37,14 +37,14 @@ def test_bv_extract():
 
         assert x_31_1.sort == s.BitVec(31)
 
-        assert x_31_31.op == s.Extract(31, 31)
-
         eq = s.ApplyFun(s.Equals, x_31_1, x_30_0)
 
         if name != 'Boolector':
             # boolector does not keep string representation of formulas
-            # eventually I'll just implement this myself
             print('Asserting', eq)
+            # Boolector is streamlined/optimized and does not keep track of op
+            assert x_31_31.op == s.Extract(31, 31)
+
     
         s.Assert(eq)
 
@@ -95,14 +95,16 @@ def test_bv_boolops():
         notbv3 = s.ApplyFun(bvnot, bv3)
 
         assert bv2orbv3.sort == s.BitVec(8)
-        assert bv2orbv3.op == bvor
+
+        if name != 'Boolector':
+            assert bv2orbv3.op == bvor
 
         bvresulteq = s.ApplyFun(Equals, bvresult, bv1andbv2)
         bvresult2eq = s.ApplyFun(Equals, bvresult2, bv2orbv3)
 
         bvnotresulteq = s.ApplyFun(Equals, bvnotresult, notbv3)
 
-        assert bvnotresulteq.sort == s.Bool()
+        assert bvnotresulteq.sort == s.Bool() or bvnotresulteq.sort == s.BitVec(1)
 
         fifteen = s.TheoryConst(bvsort, 15)
         twoforty = s.TheoryConst(bvsort, 240)

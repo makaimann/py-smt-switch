@@ -92,18 +92,15 @@ class smt:
         self.solver.SetOption(optionstr, value)
 
     def DeclareConst(self, name, sort):
+        assert isinstance(name, str), 'name parameter should be a string'
         sconst = self.solver.DeclareConst(name, sort)
         return self.__term_map[self.solver.__class__](self,
-                                                      self.No_op,
-                                                      sconst,
-                                                      [sort])
+                                                      sconst)
 
     def TheoryConst(self, sort, value):
         stconst = self.solver.TheoryConst(sort, value)
         return self.__term_map[self.solver.__class__](self,
-                                                      self.No_op,
-                                                      stconst,
-                                                      [sort])
+                                                      stconst)
 
     @check_instance
     def ApplyFun(self, fun, *args):
@@ -132,9 +129,7 @@ class smt:
 
         s_term = self.solver.ApplyFun(fun.enum, fun.args, *solver_args)
         return self.__term_map[self._solver.__class__](self,
-                                                       fun,
-                                                       s_term,
-                                                       list(args))
+                                                       s_term)
 
     @check_instance
     def Assert(self, *constraints):
@@ -144,8 +139,8 @@ class smt:
         for constraint in constraints:
             sort = getattr(constraint, 'sort', type(constraint))
 
-            if sort != bool and sort != sorts.Bool():
-                raise ValueError('Can only assert formulas of sort Bool. '
+            if sort not in {bool, sorts.Bool(), sorts.BitVec(1)}:
+                raise ValueError('Can only assert formulas of sort Bool/BitVec(1). '
                                  'Received sort: {}'.format(sort))
 
             if hasattr(constraint, 'solver_term'):
