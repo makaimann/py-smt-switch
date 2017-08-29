@@ -163,3 +163,6 @@ class smt:
     def GetValue(self, var):
         var._value = self.solver.GetValue(var.solver_term)
         return var
+
+    def ToSmt2(self, filename):
+        self.solver.ToSmt2(filename)

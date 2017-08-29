@@ -50,3 +50,7 @@ class SolverBase(metaclass=ABCMeta):
     @abstractmethod
     def GetValue(self, var):
         pass
+
+    @abstractmethod
+    def ToSmt2(self, filename):
+        pass

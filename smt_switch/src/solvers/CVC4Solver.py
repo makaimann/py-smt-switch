@@ -18,7 +18,7 @@ class CVC4Solver(SolverBase):
         # set output language to smt2.5
         if config.strict:
             opts = self.CVC4.Options()
-            opts.setOutputLanguage(eval('self.CVC4.OUTPUT_LANG_SMTLIB_V2_5'))
+            opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
             self._em = self.CVC4.ExprManager(opts)
         else:
             self._em = self.CVC4.ExprManager()
@@ -153,3 +153,6 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
+
+    def ToSmt2(self, filename):
+        raise NotImplementedError("ToSmt2 is not yet implemented.")

@@ -157,3 +157,8 @@ class Z3Solver(SolverBase):
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
+
+    def ToSmt2(self, filename):
+        with open(filename, 'w') as f:
+            f.write(self._solver.to_smt2())
+            f.close()

@@ -114,6 +114,9 @@ class BoolectorSolver(SolverBase):
         else:
             raise RuntimeError('Solver has not been run')
 
+    def ToSmt2(self, filename):
+        self._btor.Dump(format="smt2", outfile=filename)
+
     # extra functions specific to Boolector
     # And requires exactly two arguments in Boolector.
     # creating a reduction for ease of use
