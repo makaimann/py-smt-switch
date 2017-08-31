@@ -2,6 +2,7 @@ from .. import sorts
 from ..functions import func_enum
 from .solverbase import SolverBase
 from smt_switch.util import reversabledict
+from collections import Sequence
 
 
 class Z3Solver(SolverBase):
@@ -135,7 +136,7 @@ class Z3Solver(SolverBase):
         sortlist = [self._z3Sorts[sort.__class__](*sort.params)
                         for sort in inputsorts]
         sortlist.append(self._z3Sorts[outputsort.__class__](*outputsort.params))
-        raise self.z3.Function(name, *sortlist)
+        return self.z3.Function(name, *sortlist)
 
     def DeclareConst(self, name, sort):
         z3const = self._z3sorts2var[sort.__class__](name, *sort.params)
@@ -152,6 +153,9 @@ class Z3Solver(SolverBase):
         # Some versions of python don't allow fun(*list1, *list2) so combining
         z3expr = self._z3Funs[f_enum](*(indices + args))
         return z3expr
+
+    def ApplyCustomFun(self, func, *args):
+        return func(*args)
 
     def Assert(self, c):
         self._solver.add(c)

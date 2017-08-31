@@ -40,6 +40,10 @@ class SolverBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def ApplyCustomFun(self, fun, *args):
+        pass
+
+    @abstractmethod
     def Assert(cls, *pargs, **kwargs):
         return cls.Assert(*pargs, **kwargs)
 

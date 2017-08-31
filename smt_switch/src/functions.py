@@ -10,7 +10,7 @@ fdata = namedtuple_with_defaults('fdata', 'num_indices, min_arity, max_arity, cu
 
 
 # special definitions for And/Or
-# this is just to support the And([]) --> True case
+# this is just to support the And([]) --> True, Or([])-->False cases
 def _And(*args):
     '''
        Custom and function defined for And([]) --> True, and And(x) --> x
@@ -79,7 +79,8 @@ func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
                             ('BVSge', fdata(0, 2, 2)),
                             ('BVNot', fdata(0, 1, 1)),
                             ('BVNeg', fdata(0, 1, 1)),
-                            ('No_op', fdata(0, 0, 0))])
+                            ('No_op', fdata(0, 0, 0)),
+                            ('_ApplyUF', fdata(0, 1, sys.maxsize))])
 
 
 # generate enums for each of these function symbols
@@ -132,7 +133,7 @@ class operator:
             self._fname = func_info[0]
             self._f_id = func_info[1]
             self._f_type = "uf"
-            if len(func_info) == 2:
+            if len(func_info) == 3:
                 self._f_imp = func_info[2]
                 self._f_type = "macro"
         self._fdata = fdata

@@ -4,6 +4,7 @@ from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
 from smt_switch.util import reversabledict
+from collections import Sequence
 
 
 class CVC4Solver(SolverBase):
@@ -63,7 +64,8 @@ class CVC4Solver(SolverBase):
                           func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
                           func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
                           func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
-                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG})
+                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG,
+                          func_enum._ApplyUF: self.CVC4.APPLY_UF})
 
         # all constants are No_op
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,

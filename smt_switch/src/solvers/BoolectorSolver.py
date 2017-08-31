@@ -2,6 +2,7 @@ from .. import sorts
 from .solverbase import SolverBase
 from functools import reduce
 from ..functions import func_enum
+from collections import Sequence
 
 
 class BoolectorSolver(SolverBase):

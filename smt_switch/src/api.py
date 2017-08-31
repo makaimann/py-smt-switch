@@ -142,7 +142,7 @@ class smt:
         if fun.f_type == "builtin":
             s_term = self.solver.ApplyFun(fun.f_id, fun.args, *solver_args)
         elif fun.f_type in {"macro", "uf"}:
-            assert len(fun.args), "Defined function should not have index args"
+            assert len(fun.args) == 0, "Defined function should not have index args"
             s_term = self.solver.ApplyCustomFun(fun.f_id, *solver_args)
 
         return self.__term_map[self._solver.__class__](self,
