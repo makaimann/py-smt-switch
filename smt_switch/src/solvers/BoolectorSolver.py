@@ -78,6 +78,17 @@ class BoolectorSolver(SolverBase):
         if optionstr in self._BoolectorOptions:
             self._btor.Set_opt(self._BoolectorOptions[optionstr], bool(value))
 
+    def DeclareFun(self, name, inputsorts, outputsort):
+        assert isinstance(inputsorts, Sequence), \
+          "Expecting a non-empty list of input sorts"
+
+        btorisorts = [self._BoolectorSorts[sort.__class__](*sort.params)
+                          for sort in inputsorts]
+
+        btorosort = self._BoolectorSorts[outputsort.__class__](*outputsort.params)
+        _funsort = self._btor.FunSort(btorisorts, btorosort)
+        return self._btor.UF(_funsort)
+
     def DeclareConst(self, name, sort):
         btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
         btorconst = self._btor.Var(btorsort, name)
@@ -89,6 +100,14 @@ class BoolectorSolver(SolverBase):
 
     def ApplyFun(self, f_enum, indices, *args):
         btor_expr = self._BoolectorFuns[f_enum](*(args + indices))
+        return btor_expr
+
+    def ApplyCustomFun(self, func, *args):
+        '''
+           Apply a custom function. Don't need to look up corresponding function
+           -- assume func is a Boolector function.
+        '''
+        btor_expr = self._btor.Apply(list(args), func)
         return btor_expr
 
     def Assert(self, c):
@@ -116,6 +135,14 @@ class BoolectorSolver(SolverBase):
 
     def ToSmt2(self, filename):
         self._btor.Dump(format="smt2", outfile=filename)
+
+    def Symbol(self, name, sort):
+        btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
+        btorsym = self._btor.Param(btorsort, name)
+        return btorsym
+
+    def DefineFun(self, name, sortlist, paramlist, fundef):
+        return self._btor.Fun(paramlist, fundef)
 
     # extra functions specific to Boolector
     # And requires exactly two arguments in Boolector.

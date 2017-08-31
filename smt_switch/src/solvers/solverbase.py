@@ -24,6 +24,10 @@ class SolverBase(metaclass=ABCMeta):
         pass
 
     @abstractmethod
+    def DeclareFun(self, name, inputsorts, outputsort):
+        pass
+
+    @abstractmethod
     def DeclareConst(self, name, sort):
         pass
 
@@ -53,4 +57,12 @@ class SolverBase(metaclass=ABCMeta):
 
     @abstractmethod
     def ToSmt2(self, filename):
+        pass
+
+    @abstractmethod
+    def Symbol(self, name, sort):
+        pass
+
+    @abstractmethod
+    def DefineFun(self, name, sortlist, paramlist, fundef):
         pass

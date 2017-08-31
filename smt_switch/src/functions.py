@@ -57,7 +57,7 @@ func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
                             ('GEQ', fdata(0, 2, 2)),
                             ('Extract', fdata(2, 1, 1)),
                             ('Concat', fdata(0, 2, 2)),
-                            ('ZeroExt', fdata(0, 2, 2)),
+                            ('ZeroExt', fdata(1, 1, 1)),
                             ('BVAnd', fdata(0, 2, 2)),
                             ('BVOr', fdata(0, 2, 2)),
                             ('BVXor', fdata(0, 2, 2)),
@@ -96,7 +96,7 @@ func_enum.__order__ = func_symbols.keys()
 
 class operator:
     '''
-       Class that wraps all functions
+       Class that wraps all functions, builtin or defined.
 
        Allows for partial evaluations
 
@@ -116,10 +116,25 @@ class operator:
             ex4_2 == functions.extract(4, 2) will return True
     '''
 
-    def __init__(self, smt, f_enum, fdata, *args, **kwargs):
+    def __init__(self, smt, func_info, fdata, *args, **kwargs):
         self._smt = smt
-        self._fname = f_enum.name
-        self._enum = f_enum
+        self._f_imp = None
+        
+        if issubclass(func_info.__class__, enum.Enum):
+            self._fname = func_info.name
+            self._f_id = func_info
+            self._f_type = "builtin"
+        elif isinstance(func_info, tuple):
+            assert len(func_info) in {2, 3}, \
+              "Expecting function to be (name, solver object) " + \
+              "with a third parameter for the implementation if " + \
+              "it's a define-fun macros"
+            self._fname = func_info[0]
+            self._f_id = func_info[1]
+            self._f_type = "uf"
+            if len(func_info) == 2:
+                self._f_imp = func_info[2]
+                self._f_type = "macro"
         self._fdata = fdata
         self._args = args
         self._keywords = kwargs
@@ -137,8 +152,12 @@ class operator:
         return self._fname
 
     @property
-    def enum(self):
-        return self._enum
+    def f_id(self):
+        return self._f_id
+
+    @property
+    def f_type(self):
+        return self._f_type
 
     @property
     def args(self):
@@ -162,7 +181,7 @@ class operator:
                 return self._fdata.custom(*args)
 
             else:
-                return operator(self._smt, self._enum, self._fdata, *args, **kwargs)
+                return operator(self._smt, self._f_id, self._fdata, *args, **kwargs)
 
         elif len(self._args) == self._fdata.num_indices and len(args) >= self._fdata.min_arity:
             if config.strict and len(args) > self._fdata.max_arity:
@@ -180,7 +199,7 @@ class operator:
 
             # always pass an operator with the minumum number of arguments
             # this is for CVC4 to construct the function
-            op = operator(self._smt, self._enum, self._fdata,
+            op = operator(self._smt, self._f_id, self._fdata,
                           *args[:self._fdata.num_indices])
 
             args = args[self._fdata.num_indices:]

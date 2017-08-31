@@ -14,6 +14,7 @@ class TermBase(metaclass=ABCMeta):
         self._sort = sort
         self._op = op
         self._children = children
+        self._issym = False
 
     @property
     def sort(self):
@@ -133,7 +134,8 @@ class CVC4Term(TermBase):
                           'real': lambda p: sorts.Real(),
                           'bitvector': lambda p: sorts.BitVec(int(p)),
                           'bitvec': lambda p: sorts.BitVec(int(p)),
-                          'bool': lambda p: sorts.Bool()}
+                          'bool': lambda p: sorts.Bool(),
+                          'boolean': lambda p: sorts.Bool()}
 
         p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool)\s?\(?(?P<param>\d+)?\)?')
 
@@ -218,20 +220,10 @@ class CVC4Term(TermBase):
 class Z3Term(TermBase):
     def __init__(self, smt, solver_term):
 
-        z3 = smt.solver.z3
-        sortmap = {z3.Z3_BOOL_SORT: sorts.Bool(),
-                   z3.Z3_INT_SORT: sorts.Int(),
-                   z3.Z3_REAL_SORT: sorts.Real()}
-
         sts = solver_term.sort()
+        sort = smt.solver._z3Sorts[sts.kind()](sts)
 
-        if sts.kind() == z3.Z3_BV_SORT:
-            sort = sorts.BitVec(sts.size())
-        elif sts.kind() in sortmap:
-            sort = sortmap[sts.kind()]
-        else:
-            raise ValueError('Unable to determine sort of {}'.format(self))
-
+        # TODO: fix for uninterpreted functions
         enum_op = smt.solver._z3Funs2swFuns[solver_term.decl().kind()]
         op = operator(smt, enum_op, func_symbols[enum_op.name])
 
@@ -275,7 +267,9 @@ class BoolectorTerm(TermBase):
     def __init__(self, smt, solver_term):
         boolector = smt.solver.boolector
         sortmap = {boolector.BoolectorBVNode: lambda w: sorts.BitVec(w),
-                   boolector.BoolectorConstNode: lambda w: sorts.BitVec(w)}
+                   boolector.BoolectorConstNode: lambda w: sorts.BitVec(w),
+                   # TODO: Fix for array case
+                   boolector._BoolectorParamNode: lambda w: sorts.BitVec(w)}
         sort = sortmap[type(solver_term)](solver_term.width)
         super().__init__(smt, solver_term, sort)
 

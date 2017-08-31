@@ -108,6 +108,17 @@ class CVC4Solver(SolverBase):
     def SetOption(self, optionstr, value):
         self._smt.setOption(optionstr, self.CVC4.SExpr(value))
 
+    def DeclareFun(self, name, inputsorts, outputsort):
+        assert isinstance(inputsorts, Sequence), \
+          "Expecting a non-empty list of input sorts"
+
+        cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
+                         for sort in inputsorts]
+        cvc4sorts.append(self._CVC4Sorts[outputsort.__class__](*outputsort.params))
+        funtype = self._em.mkFunctionType(*cvc4sorts)
+        lam = self._em.mkVar(name, funtype)
+        return lam
+
     def DeclareConst(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
@@ -127,6 +138,14 @@ class CVC4Solver(SolverBase):
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*indices))
         cvc4expr = self._em.mkExpr(cvc4fun, args)
+        return cvc4expr
+
+    def ApplyCustomFun(self, func, *args):
+        '''
+           Apply a custom function. Don't need to look up corresponding function
+           -- assume func is a CVC4 function.
+        '''
+        cvc4expr = self._em.mkExpr(func, *args)
         return cvc4expr
 
     def Assert(self, c):
@@ -156,3 +175,15 @@ class CVC4Solver(SolverBase):
 
     def ToSmt2(self, filename):
         raise NotImplementedError("ToSmt2 is not yet implemented.")
+
+    def Symbol(self, name, sort):
+        cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
+        return self._em.mkBoundVar(name, sort)
+
+    def DefineFun(self, name, sortlist, paramlist, fundef):
+        cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
+                         for sort in sortlist]
+        funtype = self._em.mkFunctionType(*cvc4sorts)
+        lam = self._em.mkVar(name, funtype)
+        self._smt.defineFunction(lam, paramlist, fundef)
+        return lam

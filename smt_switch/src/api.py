@@ -91,6 +91,18 @@ class smt:
     def SetOption(self, optionstr, value):
         self.solver.SetOption(optionstr, value)
 
+    def DeclareFun(self, name, inputsorts, outputsort):
+        assert isinstance(inputsorts, Sequence), \
+          "Expecting a (possibly empty) list of input sorts"
+
+        if not inputsorts:
+            return self.DeclareConst(name, outputsort)
+
+        solverfun = self.solver.DeclareFun(name, inputsorts, outputsort)
+        func_info = (name, solverfun)
+        uf_fdata = functions.fdata(0, len(inputsorts), len(inputsorts))
+        return functions.operator(self, func_info, uf_fdata)
+
     def DeclareConst(self, name, sort):
         assert isinstance(name, str), 'name parameter should be a string'
         sconst = self.solver.DeclareConst(name, sort)
@@ -127,7 +139,12 @@ class smt:
                                  self.solver.TheoryConst(ls_term.sort, arg)
                                  for arg in args])
 
-        s_term = self.solver.ApplyFun(fun.enum, fun.args, *solver_args)
+        if fun.f_type == "builtin":
+            s_term = self.solver.ApplyFun(fun.f_id, fun.args, *solver_args)
+        elif fun.f_type in {"macro", "uf"}:
+            assert len(fun.args), "Defined function should not have index args"
+            s_term = self.solver.ApplyCustomFun(fun.f_id, *solver_args)
+
         return self.__term_map[self._solver.__class__](self,
                                                        s_term)
 
@@ -166,3 +183,19 @@ class smt:
 
     def ToSmt2(self, filename):
         self.solver.ToSmt2(filename)
+
+    def Symbol(self, name, sort):
+        solversym = self.solver.Symbol(name, sort)
+        term = self.__term_map[self._solver.__class__](self, solversym)
+        term._issym = True
+        return term
+
+    def DefineFun(self, name, paramlist, fundef):
+        solverparamlist = [p.solver_term for p in paramlist]
+        sortlist = [p.sort for p in paramlist]
+        sortlist.append(fundef.sort)
+        solverfun = self.solver.DefineFun(name, sortlist, solverparamlist, fundef.solver_term)
+        func_info = (name, solverfun, fundef)
+        cfdata = functions.fdata(0, len(paramlist), len(paramlist))
+        defined_op = functions.operator(self, func_info, cfdata)
+        return defined_op

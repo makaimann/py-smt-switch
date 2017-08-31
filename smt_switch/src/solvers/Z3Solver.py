@@ -1,15 +1,26 @@
 from .. import sorts
 from ..functions import func_enum
 from .solverbase import SolverBase
+from smt_switch.util import reversabledict
 
 
 class Z3Solver(SolverBase):
     # import z3
     z3 = __import__('z3')
-    _z3Sorts = {sorts.BitVec: z3.BitVec,
-                sorts.Int: z3.Int,
-                sorts.Real: z3.Real,
-                sorts.Bool: z3.Bool}
+    _z3sorts2var = {sorts.BitVec: z3.BitVec,
+                    sorts.Int: z3.Int,
+                    sorts.Real: z3.Real,
+                    sorts.Bool: z3.Bool}
+
+    _z3Sorts = {sorts.BitVec: z3.BitVecSort,
+                sorts.Int: z3.IntSort,
+                sorts.Real: z3.RealSort,
+                sorts.Bool: z3.BoolSort,
+                # for going the other way
+                z3.Z3_BOOL_SORT: lambda var: sorts.Bool(),
+                z3.Z3_INT_SORT: lambda var: sorts.Int(),
+                z3.Z3_REAL_SORT: lambda var: sorts.Real(),
+                z3.Z3_BV_SORT: lambda var: sorts.BitVec(var.size())}
 
     _z3Funs = {func_enum.Extract: z3.Extract,
                func_enum.Concat: z3.Concat,
@@ -117,8 +128,17 @@ class Z3Solver(SolverBase):
         if optionstr in self._z3Options:
             self.z3.set_param(self._z3Options[optionstr], value)
 
+    def DeclareFun(self, name, inputsorts, outputsort):
+        assert isinstance(inputsorts, Sequence), \
+          "Expecting a non-empty list of input sorts"
+        
+        sortlist = [self._z3Sorts[sort.__class__](*sort.params)
+                        for sort in inputsorts]
+        sortlist.append(self._z3Sorts[outputsort.__class__](*outputsort.params))
+        raise self.z3.Function(name, *sortlist)
+
     def DeclareConst(self, name, sort):
-        z3const = self._z3Sorts[sort.__class__](name, *sort.params)
+        z3const = self._z3sorts2var[sort.__class__](name, *sort.params)
         # should there be a no-op or just use None?
         return z3const
 
@@ -162,3 +182,9 @@ class Z3Solver(SolverBase):
         with open(filename, 'w') as f:
             f.write(self._solver.to_smt2())
             f.close()
+
+    def Symbol(self, name, sort):
+        raise NotImplementedError("Z3 does not support symbols for function macros through the API.")
+
+    def DefineFun(self, name, sortlist, paramlist, fundef):
+        raise NotImplementedError("Z3 does not support the define-fun macro through the API.")
