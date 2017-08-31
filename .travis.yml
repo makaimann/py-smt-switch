@@ -1,0 +1,32 @@
+dist: trusty
+
+language: python
+
+python: 3.4
+
+cache:
+    apt: true
+    directories:
+    - ./smt_solvers
+
+addons:
+    apt:
+        sources:
+           - ubuntu-toolchain-r-test
+        packages:
+            - libgmp3-dev
+            - git
+            - cmake
+            - zlib1g
+            - zlib1g-dev
+            - g++-4.9
+            - build-essential
+            - swig2.0
+            - libcln-dev	
+
+install:
+    - . ./util/get_solver_binaries.sh
+
+script:
+    - echo "Running pytest"
+    - pytest
