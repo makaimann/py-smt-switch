@@ -4,6 +4,7 @@ from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.config import config
 from smt_switch.util import reversabledict
+from collections import Sequence
 
 
 class CVC4Solver(SolverBase):
@@ -18,7 +19,7 @@ class CVC4Solver(SolverBase):
         # set output language to smt2.5
         if config.strict:
             opts = self.CVC4.Options()
-            opts.setOutputLanguage(eval('self.CVC4.OUTPUT_LANG_SMTLIB_V2_5'))
+            opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
             self._em = self.CVC4.ExprManager(opts)
         else:
             self._em = self.CVC4.ExprManager()
@@ -63,12 +64,17 @@ class CVC4Solver(SolverBase):
                           func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
                           func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
                           func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
-                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG})
+                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG,
+                          func_enum._ApplyUF: self.CVC4.APPLY_UF})
 
         # all constants are No_op
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
                             self.CVC4.CONST_RATIONAL: func_enum.No_op,
                             self.CVC4.CONST_BITVECTOR: func_enum.No_op,
+                            self.CVC4.BOUND_VARIABLE: func_enum.No_op,
+                            # Note: losing info about op of applied function
+                            # TODO: see if can extract function definition
+                            self.CVC4.APPLY: func_enum.No_op,
                             self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract}
 
         # Theory constant functions
@@ -108,6 +114,17 @@ class CVC4Solver(SolverBase):
     def SetOption(self, optionstr, value):
         self._smt.setOption(optionstr, self.CVC4.SExpr(value))
 
+    def DeclareFun(self, name, inputsorts, outputsort):
+        assert isinstance(inputsorts, Sequence), \
+          "Expecting a non-empty list of input sorts"
+
+        cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
+                         for sort in inputsorts]
+        outsort = self._CVC4Sorts[outputsort.__class__](*outputsort.params)
+        funtype = self._em.mkFunctionType(cvc4sorts, outsort)
+        lam = self._em.mkVar(name, funtype)
+        return lam
+
     def DeclareConst(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
         cvc4const = self._em.mkVar(name, cvc4sort)
@@ -127,6 +144,18 @@ class CVC4Solver(SolverBase):
         if not isinstance(cvc4fun, int):
             cvc4fun = self._em.mkConst(cvc4fun(*indices))
         cvc4expr = self._em.mkExpr(cvc4fun, args)
+        return cvc4expr
+
+    def ApplyCustomFun(self, func, *args):
+        '''
+           Apply a custom function. Don't need to look up corresponding function
+           -- assume func is a CVC4 function.
+        '''
+        if self._smt.isDefinedFunction(func):
+            cvc4expr = self._em.mkExpr(self.CVC4.APPLY, func, *args)
+        else:
+            cvc4expr = self._em.mkExpr(func, *args)
+
         return cvc4expr
 
     def Assert(self, c):
@@ -153,3 +182,20 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Problem is unsat')
         else:
             raise RuntimeError('Solver has not been run')
+
+    def ToSmt2(self, filename):
+        raise NotImplementedError("ToSmt2 is not yet implemented.")
+
+    def Symbol(self, name, sort):
+        cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
+        return self._em.mkBoundVar(name, cvc4sort)
+
+    def DefineFun(self, name, sortlist, paramlist, fundef):
+        cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
+                         for sort in sortlist]
+        outsort = cvc4sorts[-1]
+        cvc4sorts = cvc4sorts[:-1]
+        funtype = self._em.mkFunctionType(cvc4sorts, outsort)
+        lam = self._em.mkVar(name, funtype)
+        self._smt.defineFunction(lam, paramlist, fundef)
+        return lam
