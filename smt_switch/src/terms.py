@@ -288,11 +288,12 @@ class Z3Term(TermBase):
 class BoolectorTerm(TermBase):
     def __init__(self, smt, solver_term):
         boolector = smt.solver.boolector
-        sortmap = {boolector.BoolectorBVNode: lambda w: sorts.BitVec(w),
-                   boolector.BoolectorConstNode: lambda w: sorts.BitVec(w),
-                   # TODO: Fix for array case
-                   boolector._BoolectorParamNode: lambda w: sorts.BitVec(w)}
-        sort = sortmap[type(solver_term)](solver_term.width)
+        sortmap = {boolector.BoolectorBVNode: lambda st: sorts.BitVec(st.width),
+                   boolector.BoolectorConstNode: lambda st: sorts.BitVec(st.width),
+                   boolector.BoolectorArrayNode: lambda st: sorts.Array(
+                       sorts.BitVec(st.index_width), sorts.BitVec(st.width)),
+                   boolector._BoolectorParamNode: lambda st: sorts.BitVec(st.width)}
+        sort = sortmap[type(solver_term)](solver_term)
         super().__init__(smt, solver_term, sort)
 
     def __repr__(self):
@@ -325,41 +326,3 @@ class BoolectorTerm(TermBase):
 
 def __bool_fun(*args):
     return sorts.Bool()
-
-
-fun2sort = {func_enum.And: __bool_fun,
-            func_enum.Or: __bool_fun,
-            func_enum.No_op: sorts.get_sort,
-            func_enum.Equals: __bool_fun,
-            func_enum.Not: __bool_fun,
-            func_enum.LT: __bool_fun,
-            func_enum.GT: __bool_fun,
-            func_enum.LEQ: __bool_fun,
-            func_enum.GEQ: __bool_fun,
-            func_enum.BVUlt: __bool_fun,
-            func_enum.BVUle: __bool_fun,
-            func_enum.BVUgt: __bool_fun,
-            func_enum.BVUge: __bool_fun,
-            func_enum.BVSlt: __bool_fun,
-            func_enum.BVSle: __bool_fun,
-            func_enum.BVSgt: __bool_fun,
-            func_enum.BVSge: __bool_fun,
-            func_enum.BVNot: sorts.get_sort,
-            func_enum.BVNeg: sorts.get_sort,
-            func_enum.Ite: lambda *args: sorts.get_sort(*args[1:]),
-            func_enum.Sub: sorts.get_sort,
-            func_enum.Add: sorts.get_sort,
-            func_enum.Extract: lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
-            func_enum.Concat: lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
-            func_enum.ZeroExt: lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
-            func_enum.BVAnd: sorts.get_sort,
-            func_enum.BVOr: sorts.get_sort,
-            func_enum.BVXor: sorts.get_sort,
-            func_enum.BVAdd: sorts.get_sort,
-            func_enum.BVSub: sorts.get_sort,
-            func_enum.BVMul: sorts.get_sort,
-            func_enum.BVUdiv: sorts.get_sort,
-            func_enum.BVUrem: sorts.get_sort,
-            func_enum.BVShl: sorts.get_sort,
-            func_enum.BVAshr: sorts.get_sort,
-            func_enum.BVLshr: sorts.get_sort}

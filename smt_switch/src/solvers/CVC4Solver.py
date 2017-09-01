@@ -34,6 +34,9 @@ class CVC4Solver(SolverBase):
                            sorts.Real: self._em.realType,
                            sorts.Bool: self._em.booleanType}
 
+        # this attribute is used by an inherited function to translate sorts
+        self._tosorts = self._CVC4Sorts
+
         self._CVC4Funs = \
           reversabledict({func_enum.Extract: self.CVC4.BitVectorExtract,
                           func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,

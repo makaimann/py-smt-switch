@@ -21,7 +21,10 @@ class BoolectorSolver(SolverBase):
         self._Assertions = []
 
         self._BoolectorSorts = {sorts.BitVec: self._btor.BitVecSort,
-                                sorts.Bool: lambda: self._btor.BitVecSort(1)}
+                                sorts.Bool: lambda: self._btor.BitVecSort(1),
+                                sorts.Array: self._btor.ArraySort}
+        # this attribute is used by an inherited function to translate sorts
+        self._tosorts = self._BoolectorSorts
         self._BoolectorFuns = {func_enum.Equals: self._btor.Eq,
                                func_enum.And: self.And,
                                func_enum.Or: self.Or,
@@ -49,7 +52,9 @@ class BoolectorSolver(SolverBase):
                                func_enum.BVSgt: self._btor.Sgt,
                                func_enum.BVSge: self._btor.Sgte,
                                func_enum.BVNot: self._btor.Not,
-                               func_enum.BVNeg: self._btor.Neg}
+                               func_enum.BVNeg: self._btor.Neg,
+                               func_enum.Select: self._btor.Read,
+                               func_enum.Store: self._btor.Write}
 
         self._BoolectorConsts = {sorts.BitVec: self._btor.Const,
                                  sorts.Bool: self._btor.Const}
@@ -61,7 +66,7 @@ class BoolectorSolver(SolverBase):
                                   'random-seed': self.boolector.BTOR_OPT_SEED}
 
         # am I missing any?
-        self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV']
+        self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_AUFBV']
 
     def Reset(self):
         self.__init__(self.strict)
@@ -87,16 +92,20 @@ class BoolectorSolver(SolverBase):
         assert isinstance(inputsorts, Sequence), \
           "Expecting a non-empty list of input sorts"
 
-        btorisorts = [self._BoolectorSorts[sort.__class__](*sort.params)
+        btorisorts = [self._translate_sorts(sort)
                           for sort in inputsorts]
 
-        btorosort = self._BoolectorSorts[outputsort.__class__](*outputsort.params)
+        btorosort = self._translate_sorts(outputsort)
         _funsort = self._btor.FunSort(btorisorts, btorosort)
         return self._btor.UF(_funsort)
 
     def DeclareConst(self, name, sort):
-        btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
-        btorconst = self._btor.Var(btorsort, name)
+        btorsort = self._translate_sorts(sort)
+
+        if sort.__class__ == sorts.Array:
+            btorconst = self._btor.Array(btorsort, name)
+        else:
+            btorconst = self._btor.Var(btorsort, name)
         return btorconst
 
     def TheoryConst(self, sort, value):
@@ -142,7 +151,7 @@ class BoolectorSolver(SolverBase):
         self._btor.Dump(format="smt2", outfile=filename)
 
     def Symbol(self, name, sort):
-        btorsort = self._BoolectorSorts[sort.__class__](*sort.params)
+        btorsort = self._translate_sorts(sort)
         btorsym = self._btor.Param(btorsort, name)
         return btorsym
 

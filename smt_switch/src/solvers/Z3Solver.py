@@ -114,6 +114,9 @@ class Z3Solver(SolverBase):
 
     def __init__(self, strict):
         super().__init__(strict)
+
+        # this attribute is used by an inherited function to translate sorts
+        self._tosorts = self._z3Sorts
         self._solver = self.z3.Solver()
 
     def Reset(self):
@@ -137,7 +140,7 @@ class Z3Solver(SolverBase):
     def DeclareFun(self, name, inputsorts, outputsort):
         assert isinstance(inputsorts, Sequence), \
           "Expecting a non-empty list of input sorts"
-        
+
         sortlist = [self._z3Sorts[sort.__class__](*sort.params)
                         for sort in inputsorts]
         sortlist.append(self._z3Sorts[outputsort.__class__](*outputsort.params))
