@@ -50,3 +50,7 @@ def test_uf():
                                        b, c)))
 
         assert not s.CheckSat(), "Expecting unsat"
+
+
+if __name__ == "__main__":
+    test_uf()

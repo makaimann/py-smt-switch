@@ -71,6 +71,10 @@ class CVC4Solver(SolverBase):
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
                             self.CVC4.CONST_RATIONAL: func_enum.No_op,
                             self.CVC4.CONST_BITVECTOR: func_enum.No_op,
+                            self.CVC4.BOUND_VARIABLE: func_enum.No_op,
+                            # Note: losing info about op of applied function
+                            # TODO: see if can extract function definition
+                            self.CVC4.APPLY: func_enum.No_op,
                             self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract}
 
         # Theory constant functions
@@ -147,7 +151,11 @@ class CVC4Solver(SolverBase):
            Apply a custom function. Don't need to look up corresponding function
            -- assume func is a CVC4 function.
         '''
-        cvc4expr = self._em.mkExpr(func, *args)
+        if self._smt.isDefinedFunction(func):
+            cvc4expr = self._em.mkExpr(self.CVC4.APPLY, func, *args)
+        else:
+            cvc4expr = self._em.mkExpr(func, *args)
+
         return cvc4expr
 
     def Assert(self, c):
@@ -180,12 +188,14 @@ class CVC4Solver(SolverBase):
 
     def Symbol(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
-        return self._em.mkBoundVar(name, sort)
+        return self._em.mkBoundVar(name, cvc4sort)
 
     def DefineFun(self, name, sortlist, paramlist, fundef):
         cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
                          for sort in sortlist]
-        funtype = self._em.mkFunctionType(*cvc4sorts)
+        outsort = cvc4sorts[-1]
+        cvc4sorts = cvc4sorts[:-1]
+        funtype = self._em.mkFunctionType(cvc4sorts, outsort)
         lam = self._em.mkVar(name, funtype)
         self._smt.defineFunction(lam, paramlist, fundef)
         return lam
