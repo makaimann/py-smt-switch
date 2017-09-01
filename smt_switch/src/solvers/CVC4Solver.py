@@ -120,8 +120,8 @@ class CVC4Solver(SolverBase):
 
         cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
                          for sort in inputsorts]
-        cvc4sorts.append(self._CVC4Sorts[outputsort.__class__](*outputsort.params))
-        funtype = self._em.mkFunctionType(*cvc4sorts)
+        outsort = self._CVC4Sorts[outputsort.__class__](*outputsort.params)
+        funtype = self._em.mkFunctionType(cvc4sorts, outsort)
         lam = self._em.mkVar(name, funtype)
         return lam
 
