@@ -95,6 +95,8 @@ class Z3Solver(SolverBase):
                       z3.Z3_OP_BNOT: func_enum.BVNot,
                       z3.Z3_OP_BNEG: func_enum.BVNeg,
                       # Constants are all No_op in smt-switch
+                      z3.Z3_OP_FALSE: func_enum.No_op,
+                      z3.Z3_OP_TRUE: func_enum.No_op,
                       z3.Z3_OP_UNINTERPRETED: func_enum.No_op,
                       z3.Z3_OP_ANUM: func_enum.No_op,
                       z3.Z3_OP_BNUM: func_enum.No_op}
