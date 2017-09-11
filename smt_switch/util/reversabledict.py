@@ -1,3 +1,6 @@
+# This file is part of the smt-switch project.
+# See the file LICENSE in the top-level source directory for licensing information.
+
 class reversabledict:
     '''
        Dict that can be reversed with ~ operator

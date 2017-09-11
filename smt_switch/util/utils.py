@@ -1,3 +1,6 @@
+# This file is part of the smt-switch project.
+# See the file LICENSE in the top-level source directory for licensing information.
+
 from functools import update_wrapper
 import collections
 
