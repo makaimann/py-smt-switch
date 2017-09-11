@@ -4,7 +4,7 @@
 # See the file LICENSE in the top-level source directory for licensing information.
 
 import sys
-from smt_switch import smt, config
+from smt_switch import smt
 
 # Below are some examples and general comments to help you get started 
 
@@ -79,12 +79,10 @@ def strict_seq(solvers):
     print('Demonstrating the sequential code benchmark with strict setting')
     print('Expecting unsat')
 
-    config.strict = True
-
     for n in solvers:
         # initialize an smt object with the name of the solver
         # This is the api that you interact with
-        s = smt(n)
+        s = smt(n, strict=True)
 
         s.SetLogic('QF_BV')
         s.SetOption('produce-models', 'true')
@@ -138,8 +136,6 @@ def relaxed_seq(solvers):
     print('Demonstrating the sequential code benchmark with relaxed setting')
     print('Expecting unsat')
 
-    config.strict = False
-
     for n in solvers:
         s = smt(n)
         s.SetLogic('QF_BV')
@@ -179,11 +175,9 @@ def strict_example(solvers):
 
     print('Demonstrating a more complex example in strict mode\n')
 
-    config.strict = True
-
     for n in solvers:
         print('Solving with {}'.format(n))
-        s = smt(n)
+        s = smt(n, strict=True)
         s.SetLogic('QF_BV')
         s.SetOption('produce-models', 'true')
 
@@ -265,7 +259,6 @@ def strict_example(solvers):
 def relaxed_example(solvers):
 
     print('Demonstrating a more complex example in relaxed mode\n')
-    config.strict = False
 
     for n in solvers:
         print('Solving with {}'.format(n))

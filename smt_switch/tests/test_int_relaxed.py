@@ -1,6 +1,5 @@
 import pytest
 import smt_switch
-from smt_switch.config import config
 from smt_switch.tests import all_solvers
 
 
@@ -17,8 +16,6 @@ def test_lia():
               i3 < 2                5
        Expect UNSAT
     '''
-
-    config.strict = False
 
     for name in all_solvers:  # iterate through the solvers
         s = smt(name)
@@ -71,8 +68,6 @@ def test_ite():
               x2 < 0
        Expect UNSAT
     '''
-
-    config.strict = False
 
     for name in all_solvers:
         s = smt(name)

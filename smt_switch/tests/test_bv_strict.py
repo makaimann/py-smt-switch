@@ -1,6 +1,5 @@
 import pytest
 from smt_switch import smt
-from smt_switch.config import config
 from smt_switch.tests import bv_solvers
 
 
@@ -8,10 +7,9 @@ def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
     '''
-    config.strict = True
 
     for name in bv_solvers:
-        s = smt(name)
+        s = smt(name, strict=True)
 
         # create bitvector type of width 32
         bvsort = s.ConstructSort(s.BitVec, 32)
@@ -67,10 +65,9 @@ def test_bv_boolops():
            bv2 or bv3
            not bv3
     '''
-    config.strict = True
 
     for name in bv_solvers:
-        s = smt(name)
+        s = smt(name, strict=True)
 
         bvand = s.BVAnd
         bvor = s.BVOr
@@ -153,7 +150,7 @@ def test_bv_arithops():
     '''
 
     for name in bv_solvers:
-        s = smt(name)
+        s = smt(name, strict=True)
 
         bvadd = s.BVAdd
         bvmul = s.BVMul

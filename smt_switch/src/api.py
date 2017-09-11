@@ -2,7 +2,6 @@
 # See the file LICENSE in the top-level source directory for licensing information.
 
 from collections import Sequence
-from ..config import config
 from . import sorts
 from . import functions
 from . import terms
@@ -45,11 +44,11 @@ class smt:
                   solvers.Z3Solver: terms.Z3Term,
                   solvers.BoolectorSolver: terms.BoolectorTerm}
 
-    def __init__(self, solver_name):
+    def __init__(self, solver_name, strict=False):
         if solver_name not in self.__solver_map:
             raise ValueError('{} is not a supported solver'.format(solver_name))
 
-        self._solver = self.__solver_map[solver_name]()
+        self._solver = self.__solver_map[solver_name](strict)
         self.constraints = []
 
         # give the instance access to functions
@@ -61,6 +60,8 @@ class smt:
         for s in sorts.__all__:
             setattr(self, s, sorts.__dict__[s])
 
+        self._strict = strict
+
     def ConstructFun(self, fun, *args):
         # partial function evaluation all handled internally
         return fun(*args)
@@ -71,6 +72,10 @@ class smt:
     @property
     def solver(self):
         return self._solver
+
+    @property
+    def strict(self):
+        return self._strict
 
     # solver functions
 
@@ -132,7 +137,7 @@ class smt:
 
         ls_term = list(filter(lambda x: hasattr(x, 'solver_term'), args))[-1]
 
-        if config.strict:
+        if self._strict:
             solver_args = tuple([arg.solver_term for arg in args])
 
         else:

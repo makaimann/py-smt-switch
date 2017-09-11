@@ -5,7 +5,6 @@ from .. import sorts
 from ..functions import func_enum
 from .solverbase import SolverBase
 from fractions import Fraction
-from smt_switch.config import config
 from smt_switch.util import reversabledict
 from collections import Sequence
 
@@ -14,18 +13,20 @@ class CVC4Solver(SolverBase):
     # could also use class name instead of class itself as key
     # probably better for memory reasons?
 
-    def __init__(self, lang='auto'):
-        super().__init__()
+    def __init__(self, strict):
+        super().__init__(strict)
 
         # import CVC4
         self.CVC4 = __import__('CVC4')
-        # set output language to smt2.5
-        if config.strict:
+
+        if strict:
+            # set output language to smt2.5
             opts = self.CVC4.Options()
             opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
             self._em = self.CVC4.ExprManager(opts)
         else:
             self._em = self.CVC4.ExprManager()
+
         self._smt = self.CVC4.SmtEngine(self._em)
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
@@ -137,7 +138,6 @@ class CVC4Solver(SolverBase):
         cvc4tconst = self._CVC4Consts[sort.__class__](*(sort.params + (value,)))
         return cvc4tconst
 
-    # if config strict, check arity and don't allow python objects as arguments
     def ApplyFun(self, f_enum, indices, *args):
 
         cvc4fun = self._CVC4Funs[f_enum]

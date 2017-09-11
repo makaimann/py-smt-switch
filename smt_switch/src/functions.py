@@ -5,7 +5,6 @@ import sys
 import enum
 from collections import OrderedDict, Sequence
 from functools import partial
-from ..config import config
 from ..util import namedtuple_with_defaults
 
 
@@ -181,21 +180,21 @@ class operator:
         if len(self._args) == 0 and len(args) == self._fdata.num_indices:
 
             # check for custom behavior
-            if self._fdata.num_indices == 0 and self._fdata.custom and not config.strict:
+            if self._fdata.num_indices == 0 and self._fdata.custom and not self._smt.strict:
                 return self._fdata.custom(*args)
 
             else:
                 return operator(self._smt, self._f_id, self._fdata, *args, **kwargs)
 
         elif len(self._args) == self._fdata.num_indices and len(args) >= self._fdata.min_arity:
-            if config.strict and len(args) > self._fdata.max_arity:
+            if self._smt.strict and len(args) > self._fdata.max_arity:
                 raise ValueError('In strict mode and received {} args when max arity = '
                                  .format(len(args), fdata.max_arity))
 
             return self._smt.ApplyFun(self, *args, **kwargs)
 
         elif len(args) >= self._fdata.num_indices + self._fdata.min_arity:
-            if config.strict and len(args) - self._fdata.num_indices > self._fdata.max_arity:
+            if self._smt.strict and len(args) - self._fdata.num_indices > self._fdata.max_arity:
                 raise ValueError('In strict mode and received {} function indices and' +
                                  ' {} args when max arity = '
                                  .format(self._fdata.num_indices,
@@ -212,7 +211,7 @@ class operator:
 
         else:
             # check for custom behaviour
-            if self._fdata.custom and not config.strict:
+            if self._fdata.custom and not self._smt.strict:
                 return self._fdata.custom(*args, **kwargs)
 
             elif fdata.num_indices == 0:

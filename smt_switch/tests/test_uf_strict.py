@@ -1,6 +1,5 @@
 import pytest
 from smt_switch import smt
-from smt_switch.config import config
 from smt_switch.tests import all_solvers
 
 
@@ -24,10 +23,8 @@ def test_uf():
         (check-sat)
     '''
 
-    config.strict = True
-
     for name in all_solvers:
-        s = smt(name)
+        s = smt(name, strict=True)
         s.SetLogic('QF_UF')
 
         a = s.DeclareFun("a", [], s.Bool())
