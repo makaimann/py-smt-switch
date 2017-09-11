@@ -1,6 +1,5 @@
 import pytest
 import smt_switch
-from smt_switch.config import config
 from smt_switch.tests import all_solvers
 
 
@@ -17,11 +16,9 @@ def test_lia():
               i3 < 2                5
        Expect UNSAT
     '''
-    # set the strict variable before importing other modules
-    config.strict = True
 
     for name in all_solvers:  # iterate through the solvers
-        s = smt(name)
+        s = smt(name, strict=True)
         s.SetLogic('QF_LIA')
         isort = s.ConstructSort(s.Int)
         i1 = s.DeclareConst('i1', isort)
@@ -75,10 +72,9 @@ def test_ite():
               x2 < 0
        Expect UNSAT
     '''
-    config.strict = True
 
     for name in all_solvers:
-        s = smt(name)
+        s = smt(name, strict=True)
 
         # demonstrating that you don't need to use s.ConstructSort
         isort = s.Int()

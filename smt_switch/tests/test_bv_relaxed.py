@@ -1,6 +1,5 @@
 import pytest
 from smt_switch import smt
-from smt_switch.config import config
 from smt_switch.tests import bv_solvers
 
 
@@ -51,8 +50,6 @@ def test_bv_extract():
     '''
        Simple bitvector example based on CVC4 extract.cpp example
     '''
-
-    config.strict = False
 
     for name in bv_solvers:
         s = smt(name)
@@ -105,7 +102,6 @@ def test_bv_boolops():
            bv2 or bv3
            not bv3
     '''
-    config.strict = False
 
     for name in bv_solvers:
         s = smt(name)
@@ -161,7 +157,6 @@ def test_bv_arithops():
           bv2*bv3
           bv3 >> 1
     '''
-    config.strict = False
 
     for name in bv_solvers:
         s = smt(name)

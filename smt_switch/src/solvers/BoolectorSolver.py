@@ -9,8 +9,8 @@ from collections import Sequence
 
 
 class BoolectorSolver(SolverBase):
-    def __init__(self):
-        super().__init__()
+    def __init__(self, strict):
+        super().__init__(strict)
         
         self.boolector = __import__('boolector')
         self._btor = self.boolector.Boolector()

@@ -6,9 +6,14 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 
 class SolverBase(metaclass=ABCMeta):
     @abstractmethod
-    def __init__(self):
+    def __init__(self, strict):
         self.constraints = []
         self.Sat = None
+        self._strict = strict
+
+    @property
+    def strict(self):
+        return self._strict
 
     @abstractmethod
     def Reset(self):

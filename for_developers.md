@@ -24,7 +24,7 @@ fdata(num_indices, min_arity, max_arity, custom_behavior)
 * num_indices is the number of indices for an indexed function. For example, extract in the bitvector theory has num_indices=2
 * min_arity is the minimum arity of the function
 * max_arity is the maximum arity of the function
-* custom_behavior is a function that is called if config.strict==False when the number of function arguments is not in [min_arity, max_arity]
+* custom_behavior is a function that is called if smt._strict==False (init parameter) when the number of function arguments is not in [min_arity, max_arity]
 
 Example: 'Extract': fdata(2, 1, 1, None) 
 

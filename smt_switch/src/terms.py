@@ -3,7 +3,6 @@
 
 from abc import ABCMeta
 from . import sorts
-from ..config import config
 from fractions import Fraction
 from .functions import func_enum, func_symbols, operator
 import re
@@ -242,7 +241,7 @@ class Z3Term(TermBase):
         super().__init__(smt, solver_term, sort, op, children)
 
     def __repr__(self):
-        if config.strict:
+        if self._smt.strict:
             return self.solver_term.sexpr()
         else:
             return self.solver_term.__repr__()

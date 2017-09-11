@@ -112,8 +112,8 @@ class Z3Solver(SolverBase):
     _z3Options = {'produce-models': 'model',
                   'random-seed': 'smt.random_seed'}
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, strict):
+        super().__init__(strict)
         self._solver = self.z3.Solver()
 
     def Reset(self):
