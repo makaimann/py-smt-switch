@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# This file is part of the smt-switch project.
+# See the file LICENSE in the top-level source directory for licensing information.
+
 import sys
 from smt_switch import smt, config
 
