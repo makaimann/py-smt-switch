@@ -75,6 +75,7 @@ class CVC4Solver(SolverBase):
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
                             self.CVC4.CONST_RATIONAL: func_enum.No_op,
                             self.CVC4.CONST_BITVECTOR: func_enum.No_op,
+                            self.CVC4.CONST_BOOLEAN: func_enum.No_op,
                             self.CVC4.BOUND_VARIABLE: func_enum.No_op,
                             # Note: losing info about op of applied function
                             # TODO: see if can extract function definition
