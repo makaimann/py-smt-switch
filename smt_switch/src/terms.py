@@ -61,15 +61,35 @@ class TermBase(metaclass=ABCMeta):
             return self._smt.ApplyFun(self._smt.Sub, zero, self)
 
     def __lt__(self, other):
+        assert not hasattr(other, "sort") or self.sort == other.sort, \
+          "Operator expects 2 arguments of same sort"
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVSlt, self, other)
+
         return self._smt.ApplyFun(self._smt.LT, self, other)
 
     def __le__(self, other):
+        assert not hasattr(other, "sort") or self.sort == other.sort, \
+          "Operator expects 2 arguments of same sort"
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVSle, self, other)
+
         return self._smt.ApplyFun(self._smt.LEQ, self, other)
 
     def __gt__(self, other):
+        assert not hasattr(other, "sort") or self.sort == other.sort, \
+          "Operator expects 2 arguments of same sort"
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVSgt, self, other)
+
         return self._smt.ApplyFun(self._smt.GT, self, other)
 
     def __ge__(self, other):
+        assert not hasattr(other, "sort") or self.sort == other.sort, \
+          "Operator expects 2 arguments of same sort"
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVSge, self, other)
+
         return self._smt.ApplyFun(self._smt.GEQ, self, other)
 
     # bit operations
