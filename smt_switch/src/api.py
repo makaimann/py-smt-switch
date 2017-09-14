@@ -44,6 +44,10 @@ class smt:
                   solvers.Z3Solver: terms.Z3Term,
                   solvers.BoolectorSolver: terms.BoolectorTerm}
 
+    __infer_sort = {bool: sorts.Bool(),
+                    int: sorts.Int(),
+                    float: sorts.Real()}
+
     def __init__(self, solver_name, strict=False):
         if solver_name not in self.__solver_map:
             raise ValueError('{} is not a supported solver'.format(solver_name))
@@ -135,7 +139,15 @@ class smt:
                                  'Found a {}, but the solver is {}'.format(arg.__class__,
                                                                            self._solver.__class__))
 
-        ls_term = list(filter(lambda x: hasattr(x, 'solver_term'), args))[-1]
+        ls_term = list(filter(lambda x: hasattr(x, 'solver_term'), args))
+
+        if not ls_term:
+            try:
+                sort = self.__infer_sort[args[-1].__class__]
+            except:
+                raise RuntimeError("No smt term arguments and unable to infer argument(s) sort.")
+        else:
+            sort = ls_term[-1].sort
 
         if self._strict:
             solver_args = tuple([arg.solver_term for arg in args])
@@ -144,7 +156,7 @@ class smt:
             solver_args = tuple([arg.solver_term
                                  if hasattr(arg, 'solver_term')
                                  else
-                                 self.solver.TheoryConst(ls_term.sort, arg)
+                                 self.solver.TheoryConst(sort, arg)
                                  for arg in args])
 
         if fun.f_type == "builtin":
