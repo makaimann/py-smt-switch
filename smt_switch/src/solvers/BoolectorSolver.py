@@ -66,7 +66,7 @@ class BoolectorSolver(SolverBase):
                                   'random-seed': self.boolector.BTOR_OPT_SEED}
 
         # am I missing any?
-        self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_AUFBV']
+        self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV', 'QF_AUFBV']
 
     def Reset(self):
         self.__init__(self.strict)

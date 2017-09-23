@@ -81,7 +81,7 @@ func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
                             ('BVSge', fdata(0, 2, 2)),
                             ('BVNot', fdata(0, 1, 1)),
                             ('BVNeg', fdata(0, 1, 1)),
-                            ('Select', fdata(0, 3, 3)),
+                            ('Select', fdata(0, 2, 2)),
                             ('Store', fdata(0, 3, 3)),
                             ('No_op', fdata(0, 0, 0)),
                             ('_ApplyUF', fdata(0, 1, sys.maxsize))])

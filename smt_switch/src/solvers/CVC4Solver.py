@@ -32,7 +32,16 @@ class CVC4Solver(SolverBase):
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
                            sorts.Real: self._em.realType,
-                           sorts.Bool: self._em.booleanType}
+                           sorts.Bool: self._em.booleanType,
+                           sorts.Array: self._em.mkArrayType}
+
+        # def create_array_sort(idxsort, dsort):
+        #     # get parameterized sorts
+        #     cvc4_idxsort = self._CVC4Sorts[idxsort.__class__](*idxsort.params)
+        #     cvc4_dsort = self._CVC4Sorts[dsort.__class__](*dsort.params)
+        #     return self._em.mkArrayType(cvc4_idxsort, cvc4_dsort)
+
+        # self._CVC4Sorts[sorts.Array] = create_array_sort
 
         # this attribute is used by an inherited function to translate sorts
         self._tosorts = self._CVC4Sorts
@@ -73,7 +82,9 @@ class CVC4Solver(SolverBase):
                           func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
                           func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
                           func_enum.BVNeg: self.CVC4.BITVECTOR_NEG,
-                          func_enum._ApplyUF: self.CVC4.APPLY_UF})
+                          func_enum._ApplyUF: self.CVC4.APPLY_UF,
+                          func_enum.Select: self.CVC4.SELECT,
+                          func_enum.Store: self.CVC4.STORE})
 
         # all constants are No_op
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
@@ -130,15 +141,15 @@ class CVC4Solver(SolverBase):
         assert isinstance(inputsorts, Sequence), \
           "Expecting a non-empty list of input sorts"
 
-        cvc4sorts = [self._CVC4Sorts[sort.__class__](*sort.params)
-                         for sort in inputsorts]
-        outsort = self._CVC4Sorts[outputsort.__class__](*outputsort.params)
+        cvc4sorts = [self._translate_sorts(sort) for sort in inputsorts]
+        outsort = self._translate_sorts(outputsort)
+
         funtype = self._em.mkFunctionType(cvc4sorts, outsort)
         lam = self._em.mkVar(name, funtype)
         return lam
 
     def DeclareConst(self, name, sort):
-        cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
+        cvc4sort = self._translate_sorts(sort)
         cvc4const = self._em.mkVar(name, cvc4sort)
         return cvc4const
 
