@@ -157,9 +157,11 @@ class CVC4Term(TermBase):
                           'bitvector': lambda p: sorts.BitVec(int(p)),
                           'bitvec': lambda p: sorts.BitVec(int(p)),
                           'bool': lambda p: sorts.Bool(),
-                          'boolean': lambda p: sorts.Bool()}
+                          'boolean': lambda p: sorts.Bool(),
+                          'array': lambda ids, ds: sorts.Array(ids, ds)
+                          }
 
-        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool)\s?\(?(?P<param>\d+)?\)?')
+        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool|array)\s?\(?(?P<param>\d+)?\)?')
 
         cvc4sortstr = solver_term.getType().toString().lower()
         match = p.search(cvc4sortstr)
@@ -169,10 +171,22 @@ class CVC4Term(TermBase):
 
         assert match.group('sort') in self._str2sort, 'Found {} for string {}'.format(match.group('sort'), cvc4sortstr)
 
-        if match.group('sort') == 'BITVECTOR':
-            assert match.group('param'), 'BitVecs must have a width'
+        params = (None,)
 
-        sort = self._str2sort[match.group('sort')](match.group('param'))
+        # TODO: Clean up array -- fix so same as other cases
+        if match.group('sort') == 'array':
+            # get parameterized values
+            idxmatch = p.search(cvc4sortstr[match.span(0)[1]:])
+            dmatch = p.search(cvc4sortstr[idxmatch.span(0)[1]:])
+            idxsort = self._str2sort[idxmatch.group('sort')](idxmatch.group('param'))
+            dsort = self._str2sort[dmatch.group('sort')](dmatch.group('param'))
+            params = (idxsort, dsort)
+
+        elif 'bitvec' in match.group('sort'):
+            assert match.group('param'), 'BitVecs must have a width'
+            params = tuple(match.group('param'))
+
+        sort = self._str2sort[match.group('sort')](*params)
 
         # TODO: handle this check more elegantly -- perhaps a lambda in the dict
         extk= -1
@@ -237,6 +251,24 @@ class CVC4Term(TermBase):
 
     def as_bitstr(self):
         return self._value.getConstBitVector().toString()
+
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
+
+        kvpairs = []
+        expr = self.solver_term
+        while expr.hasOperator() and expr.getNumChildren() > 0:
+            t = expr.getChildren()[1:]  # gets index and value
+            # get CVC4Terms
+            t = tuple(CVC4Term(self._smt, x) for x in t)
+            kvpairs.append(t)
+            expr = expr.getChildren()[0]
+
+        return kvpairs
 
 
 class Z3Term(TermBase):
