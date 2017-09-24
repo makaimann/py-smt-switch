@@ -264,7 +264,9 @@ class CVC4Term(TermBase):
         while expr.hasOperator() and expr.getNumChildren() > 0:
             t = expr.getChildren()[1:]  # gets index and value
             # get CVC4Terms
-            t = tuple(CVC4Term(self._smt, x) for x in t)
+            t = tuple(self._smt.GetValue(CVC4Term(self._smt, x)) for x in t)
+            # TODO: Figure out best representation -- boolector uses bistrs
+            t = tuple(x.as_bitstr() if x.sort.__class__ == sorts.BitVec else x.as_int() for x in t)
             kvpairs.append(t)
             expr = expr.getChildren()[0]
 
@@ -345,6 +347,14 @@ class BoolectorTerm(TermBase):
         return bool(self._value.assignment)
 
     def as_bitstr(self):
+        return self._value.assignment
+
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
         return self._value.assignment
 
     @property
