@@ -154,8 +154,8 @@ class CVC4Term(TermBase):
     def __init__(self, smt, solver_term):
         self._str2sort = {'int': lambda p: sorts.Int(),
                           'real': lambda p: sorts.Real(),
-                          'bitvector': lambda p: sorts.BitVec(int(p)),
-                          'bitvec': lambda p: sorts.BitVec(int(p)),
+                          'bitvector': lambda p: sorts.BitVec(p),
+                          'bitvec': lambda p: sorts.BitVec(p),
                           'bool': lambda p: sorts.Bool(),
                           'boolean': lambda p: sorts.Bool(),
                           'array': lambda ids, ds: sorts.Array(ids, ds)
@@ -184,7 +184,7 @@ class CVC4Term(TermBase):
 
         elif 'bitvec' in match.group('sort'):
             assert match.group('param'), 'BitVecs must have a width'
-            params = tuple(match.group('param'))
+            params = (int(match.group('param')),)
 
         sort = self._str2sort[match.group('sort')](*params)
 
@@ -265,7 +265,7 @@ class CVC4Term(TermBase):
             t = expr.getChildren()[1:]  # gets index and value
             # get CVC4Terms
             t = tuple(self._smt.GetValue(CVC4Term(self._smt, x)) for x in t)
-            # TODO: Figure out best representation -- boolector uses bistrs
+            # TODO: Figure out best representation -- boolector uses bitstrings
             t = tuple(x.as_bitstr() if x.sort.__class__ == sorts.BitVec else x.as_int() for x in t)
             kvpairs.append(t)
             expr = expr.getChildren()[0]
@@ -317,6 +317,27 @@ class Z3Term(TermBase):
 
     def as_bitstr(self):
         return '{0:b}'.format(int(self._value.as_string())).zfill(self.sort.width)
+
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
+
+        kvpairs = []
+        expr = self.solver_term
+        while len(expr.children()) > 0:
+            t = expr.children()[1:]  # gets index and value
+            # get Z3Terms
+            t = tuple(self._smt.GetValue(Z3Term(self._smt, x)) for x in t)
+            # TODO: Figure out best representation -- boolector uses bitstrings
+            # but might be nice to know symbolic variable name
+            t = tuple(x.as_bitstr() if x.sort.__class__ == sorts.BitVec else x.as_int() for x in t)
+            kvpairs.append(t)
+            expr = expr.children()[0]
+
+        return kvpairs    
 
 
 class BoolectorTerm(TermBase):
