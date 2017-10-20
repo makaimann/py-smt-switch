@@ -63,7 +63,7 @@ class BoolectorSolver(SolverBase):
         self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV']
 
     def Reset(self):
-        self.__init__()
+        self.__init__(self.strict)
 
     def CheckSat(self):
         if self._btor.Sat() == self._btor.SAT:
