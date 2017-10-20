@@ -103,7 +103,7 @@ class CVC4Solver(SolverBase):
                             sorts.Bool: create_bool}
 
     def Reset(self):
-        self._smt.Reset()
+        self._smt.reset()
 
     def CheckSat(self):
         # rely on Assert for now
