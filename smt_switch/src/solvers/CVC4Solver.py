@@ -105,6 +105,9 @@ class CVC4Solver(SolverBase):
 
     def Reset(self):
         self._smt.reset()
+        self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
+        self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
+
 
     def CheckSat(self):
         # rely on Assert for now
