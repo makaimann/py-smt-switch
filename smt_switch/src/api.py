@@ -51,6 +51,7 @@ class smt:
     def __init__(self, solver_name, strict=False):
         if solver_name not in self.__solver_map:
             raise ValueError('{} is not a supported solver'.format(solver_name))
+        self._solver_name = solver_name
 
         self._solver = self.__solver_map[solver_name](strict)
         self.constraints = []
@@ -72,6 +73,10 @@ class smt:
 
     def ConstructSort(self, s, *args):
         return s(*args)
+
+    @property
+    def solver_name(self):
+        return self._solver_name
 
     @property
     def solver(self):
