@@ -7,6 +7,7 @@ from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.util import reversabledict
 from collections import Sequence
+import os
 
 
 class CVC4Solver(SolverBase):
@@ -24,6 +25,10 @@ class CVC4Solver(SolverBase):
         self._em = self.CVC4.ExprManager(opts)
 
         self._smt = self.CVC4.SmtEngine(self._em)
+        self.temp_file_name = "cvc4-out.smt2"
+        self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
+        self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
+
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
                            sorts.Real: self._em.realType,
@@ -184,8 +189,8 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Solver has not been run')
 
     def ToSmt2(self, filename):
-        self._smt.setOption("dump", "raw-benchmark")
-#        raise NotImplementedError("ToSmt2 is not yet implemented.")
+        wd = os.getcwd()
+        os.rename(os.getcwd() + "/" + self.temp_file_name, filename)
 
     def Symbol(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
