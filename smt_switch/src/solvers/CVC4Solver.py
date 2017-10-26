@@ -19,13 +19,9 @@ class CVC4Solver(SolverBase):
         # import CVC4
         self.CVC4 = __import__('CVC4')
 
-        if strict:
-            # set output language to smt2.5
-            opts = self.CVC4.Options()
-            opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
-            self._em = self.CVC4.ExprManager(opts)
-        else:
-            self._em = self.CVC4.ExprManager()
+        opts = self.CVC4.Options()
+        opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
+        self._em = self.CVC4.ExprManager(opts)
 
         self._smt = self.CVC4.SmtEngine(self._em)
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
@@ -188,7 +184,8 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Solver has not been run')
 
     def ToSmt2(self, filename):
-        raise NotImplementedError("ToSmt2 is not yet implemented.")
+        self._smt.setOption("dump", "raw-benchmark")
+#        raise NotImplementedError("ToSmt2 is not yet implemented.")
 
     def Symbol(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)

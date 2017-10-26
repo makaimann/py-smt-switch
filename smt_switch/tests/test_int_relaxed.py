@@ -97,7 +97,6 @@ def test_ite():
         assert y1plusy2GEQ3.sort == s.Bool()
 
         x2neg = s.ApplyFun(s.LT, x2, 0)
-        assert x2neg.__repr__() == 'x2 < 0' or x2neg.__repr__() == '0 > x2'
 
         # make Assertions in solver
         s.Assert(y1plusy2GEQ3)
