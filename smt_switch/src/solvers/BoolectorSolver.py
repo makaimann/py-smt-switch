@@ -6,6 +6,7 @@ from .solverbase import SolverBase
 from functools import reduce
 from ..functions import func_enum
 from collections import Sequence
+import math
 
 
 class BoolectorSolver(SolverBase):
@@ -36,9 +37,9 @@ class BoolectorSolver(SolverBase):
                                func_enum.BVMul: self._btor.Mul,
                                func_enum.BVUdiv: self._btor.Udiv,
                                func_enum.BVUrem: self._btor.Urem,
-                               func_enum.BVShl: self.Sll,
-                               func_enum.BVAshr: self.Sra,
-                               func_enum.BVLshr: self.Srl,
+                               func_enum.BVShl: lambda bv, shift: bv << self.__shift_process(bv, shift),
+                               func_enum.BVAshr: lambda bv, shift: self._btor.Sra(bv, self.__shift_process(bv, shift)),
+                               func_enum.BVLshr: lambda bv, shift: bv >> self.__shift_process(bv,shift),
                                func_enum.BVUlt: self._btor.Ult,
                                func_enum.BVUle: self._btor.Ulte,
                                func_enum.BVUgt: self._btor.Ugt,
@@ -165,27 +166,14 @@ class BoolectorSolver(SolverBase):
         result = reduce(lambda x, y: self._btor.Or(x, y), args)
         return result
 
-    def Sll(self, bv, shift):
+    def __shift_process(self, bv, shift):
         if not isinstance(shift, int):
-            shift = int(shift.bits, base=2)
-        slice_bv = bv[bv.width-1-shift:]
-        zeros = self._btor.Const(0, shift)
-        return self._btor.Concat(slice_bv, zeros)
-
-    def Srl(self, bv, shift):
-        if not isinstance(shift, int):
-            shift = int(shift.bits, base=2)
-        slice_bv = bv[:shift]
-        zeros = self._btor.Const(0, shift)
-        return self._btor.Concat(zeros, slice_bv)
-
-    def Sra(self, bv, shift):
-        if not isinstance(shift, int):
-            shift = int(shift.bits, base=2)
-        slice_bv = bv[:shift]
-        zeros = self._btor.Const(0, shift)
-        ones = self._btor.Const('1'*shift)
-        msb = bv[bv.width-1:bv.width-1]
-        ones_concat = self._btor.Concat(ones, slice_bv)
-        zeros_concat = self._btor.Concat(zeros, slice_bv)
-        return self._btor.Cond(msb == 0b1, ones_concat, zeros_concat)
+            if hasattr(shift, 'bits'):
+                shift = int(shift.bits, base=2)
+            else:
+                # it's symbolic and Boolector wants the log width bitvec for shifting
+                w = math.ceil(math.log2(bv.width))
+                # add an extra assertion which gives same performance as other solvers
+                self._btor.Assert(self._btor.Or(shift[:w] == 0, bv == 0))
+                shift = shift[w-1:0]
+        return shift
