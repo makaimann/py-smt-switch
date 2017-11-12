@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import inspect
 
 
-__all__ = ['BitVec', 'Int', 'Real', 'Bool', 'construct_sort']
+__all__ = ['BitVec', 'Int', 'Real', 'Bool', 'Array']
 
 class SortBase(metaclass=ABCMeta):
     @abstractmethod
@@ -68,28 +68,20 @@ class Bool(SortBase):
         super().__init__('Bool', [])
 
 
-def construct_sort(identifier, *args):
-    if isinstance(identifier, str):
-        if identifier[0] == '(':
-            # TODO: parse S expression
-            raise NotImplementedError
-        else:
-            return eval(identifier)(*args)
-    elif inspect.isclass(identifier):
-        return identifier(*args)
-    else:
-        raise ValueError('Expected [str | Sort] and received {}.'.format(type(identifier)))
+class Array(SortBase):
+    def __init__(self, idxsort, dsort):
+        super().__init__('(Array {} {})'.format(idxsort, dsort), [])
+        self._idxsort = idxsort
+        self._dsort = dsort
 
+    @property
+    def idxsort(self):
+        return self._idxsort
 
-py2sort = {int : Int,
-           bool : Bool}
+    @property
+    def dsort(self):
+        return self._dsort
 
-
-def get_sort(*args):
-    for a in args:
-        if hasattr(a, 'sort'):
-            return a.sort
-        elif issubclass(a.__class__, SortBase):
-            return a
-
-    raise ValueError('Was expecting at least one argument with a valid sort')
+    @property
+    def params(self):
+        return (self._idxsort, self._dsort)

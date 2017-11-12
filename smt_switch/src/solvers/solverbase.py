@@ -2,6 +2,7 @@
 # See the file LICENSE in the top-level source directory for licensing information.
 
 from abc import ABCMeta, abstractmethod, abstractproperty
+from .. import sorts
 
 
 class SolverBase(metaclass=ABCMeta):
@@ -10,7 +11,8 @@ class SolverBase(metaclass=ABCMeta):
         self.constraints = []
         self.Sat = None
         self._strict = strict
-
+        self._tosorts = None
+        
     @property
     def strict(self):
         return self._strict
@@ -78,3 +80,22 @@ class SolverBase(metaclass=ABCMeta):
     @abstractmethod
     def DefineFun(self, name, sortlist, paramlist, fundef):
         pass
+
+    def _translate_sorts(self, sort):
+        '''
+        Recursive function for translating parameterized sorts
+        Hopefully there aren't sorts nested deep enough to
+        require more than than the python recursion limit
+        --> I would hope not!
+        '''
+
+        assert self._tosorts and isinstance(self._tosorts, dict), \
+          "Expecting self._tosorts to be defined by subclass"
+
+        if not issubclass(sort.__class__, sorts.SortBase):
+            return sort
+        elif len(sort.params) == 0:
+            return self._tosorts[sort.__class__]()
+        else:
+            paramlist = [self._translate_sorts(p) for p in sort.params]
+            return self._tosorts[sort.__class__](*paramlist)

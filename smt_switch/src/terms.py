@@ -154,12 +154,14 @@ class CVC4Term(TermBase):
     def __init__(self, smt, solver_term):
         self._str2sort = {'int': lambda p: sorts.Int(),
                           'real': lambda p: sorts.Real(),
-                          'bitvector': lambda p: sorts.BitVec(int(p)),
-                          'bitvec': lambda p: sorts.BitVec(int(p)),
+                          'bitvector': lambda p: sorts.BitVec(p),
+                          'bitvec': lambda p: sorts.BitVec(p),
                           'bool': lambda p: sorts.Bool(),
-                          'boolean': lambda p: sorts.Bool()}
+                          'boolean': lambda p: sorts.Bool(),
+                          'array': lambda ids, ds: sorts.Array(ids, ds)
+                          }
 
-        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool)\s?\(?(?P<param>\d+)?\)?')
+        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool|array)\s?\(?(?P<param>\d+)?\)?')
 
         cvc4sortstr = solver_term.getType().toString().lower()
         match = p.search(cvc4sortstr)
@@ -169,10 +171,22 @@ class CVC4Term(TermBase):
 
         assert match.group('sort') in self._str2sort, 'Found {} for string {}'.format(match.group('sort'), cvc4sortstr)
 
-        if match.group('sort') == 'BITVECTOR':
-            assert match.group('param'), 'BitVecs must have a width'
+        params = (None,)
 
-        sort = self._str2sort[match.group('sort')](match.group('param'))
+        # TODO: Clean up array -- fix so same as other cases
+        if match.group('sort') == 'array':
+            # get parameterized values
+            idxmatch = p.search(cvc4sortstr[match.span(0)[1]:])
+            dmatch = p.search(cvc4sortstr[idxmatch.span(0)[1]:])
+            idxsort = self._str2sort[idxmatch.group('sort')](idxmatch.group('param'))
+            dsort = self._str2sort[dmatch.group('sort')](dmatch.group('param'))
+            params = (idxsort, dsort)
+
+        elif 'bitvec' in match.group('sort'):
+            assert match.group('param'), 'BitVecs must have a width'
+            params = (int(match.group('param')),)
+
+        sort = self._str2sort[match.group('sort')](*params)
 
         # TODO: handle this check more elegantly -- perhaps a lambda in the dict
         extk= -1
@@ -238,6 +252,26 @@ class CVC4Term(TermBase):
     def as_bitstr(self):
         return self._value.getConstBitVector().toString()
 
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
+
+        kvpairs = []
+        expr = self.solver_term
+        while expr.hasOperator() and expr.getNumChildren() > 0:
+            t = expr.getChildren()[1:]  # gets index and value
+            # get CVC4Terms
+            t = tuple(self._smt.GetValue(CVC4Term(self._smt, x)) for x in t)
+            # TODO: Figure out best representation -- boolector uses bitstrings
+            t = tuple(x.as_bitstr() if x.sort.__class__ == sorts.BitVec else x.as_int() for x in t)
+            kvpairs.append(t)
+            expr = expr.getChildren()[0]
+
+        return kvpairs
+
 
 class Z3Term(TermBase):
     def __init__(self, smt, solver_term):
@@ -284,15 +318,37 @@ class Z3Term(TermBase):
     def as_bitstr(self):
         return '{0:b}'.format(int(self._value.as_string())).zfill(self.sort.width)
 
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
+
+        kvpairs = []
+        expr = self.solver_term
+        while len(expr.children()) > 0:
+            t = expr.children()[1:]  # gets index and value
+            # get Z3Terms
+            t = tuple(self._smt.GetValue(Z3Term(self._smt, x)) for x in t)
+            # TODO: Figure out best representation -- boolector uses bitstrings
+            # but might be nice to know symbolic variable name
+            t = tuple(x.as_bitstr() if x.sort.__class__ == sorts.BitVec else x.as_int() for x in t)
+            kvpairs.append(t)
+            expr = expr.children()[0]
+
+        return kvpairs    
+
 
 class BoolectorTerm(TermBase):
     def __init__(self, smt, solver_term):
         boolector = smt.solver.boolector
-        sortmap = {boolector.BoolectorBVNode: lambda w: sorts.BitVec(w),
-                   boolector.BoolectorConstNode: lambda w: sorts.BitVec(w),
-                   # TODO: Fix for array case
-                   boolector._BoolectorParamNode: lambda w: sorts.BitVec(w)}
-        sort = sortmap[type(solver_term)](solver_term.width)
+        sortmap = {boolector.BoolectorBVNode: lambda st: sorts.BitVec(st.width),
+                   boolector.BoolectorConstNode: lambda st: sorts.BitVec(st.width),
+                   boolector.BoolectorArrayNode: lambda st: sorts.Array(
+                       sorts.BitVec(st.index_width), sorts.BitVec(st.width)),
+                   boolector._BoolectorParamNode: lambda st: sorts.BitVec(st.width)}
+        sort = sortmap[type(solver_term)](solver_term)
         super().__init__(smt, solver_term, sort)
 
     def __repr__(self):
@@ -314,6 +370,14 @@ class BoolectorTerm(TermBase):
     def as_bitstr(self):
         return self._value.assignment
 
+    def as_list(self):
+        '''
+        Gets value of array as list of tuples in order of store operators
+        '''
+        if self.sort.__class__ != sorts.Array:
+            raise RuntimeError("Cannot call as_list on sort: {}".format(self.sort))
+        return self._value.assignment
+
     @property
     def op(self):
         raise NotImplementedError('Boolector does not support querying the operator of a term.')
@@ -325,41 +389,3 @@ class BoolectorTerm(TermBase):
 
 def __bool_fun(*args):
     return sorts.Bool()
-
-
-fun2sort = {func_enum.And: __bool_fun,
-            func_enum.Or: __bool_fun,
-            func_enum.No_op: sorts.get_sort,
-            func_enum.Equals: __bool_fun,
-            func_enum.Not: __bool_fun,
-            func_enum.LT: __bool_fun,
-            func_enum.GT: __bool_fun,
-            func_enum.LEQ: __bool_fun,
-            func_enum.GEQ: __bool_fun,
-            func_enum.BVUlt: __bool_fun,
-            func_enum.BVUle: __bool_fun,
-            func_enum.BVUgt: __bool_fun,
-            func_enum.BVUge: __bool_fun,
-            func_enum.BVSlt: __bool_fun,
-            func_enum.BVSle: __bool_fun,
-            func_enum.BVSgt: __bool_fun,
-            func_enum.BVSge: __bool_fun,
-            func_enum.BVNot: sorts.get_sort,
-            func_enum.BVNeg: sorts.get_sort,
-            func_enum.Ite: lambda *args: sorts.get_sort(*args[1:]),
-            func_enum.Sub: sorts.get_sort,
-            func_enum.Add: sorts.get_sort,
-            func_enum.Extract: lambda ub, lb, arg: sorts.BitVec(ub - lb + 1),
-            func_enum.Concat: lambda b1, b2: sorts.BitVec(b1.sort.width + b2.sort.width),
-            func_enum.ZeroExt: lambda bv, pad_width: sorts.BitVec(bv.sort.width + pad_width),
-            func_enum.BVAnd: sorts.get_sort,
-            func_enum.BVOr: sorts.get_sort,
-            func_enum.BVXor: sorts.get_sort,
-            func_enum.BVAdd: sorts.get_sort,
-            func_enum.BVSub: sorts.get_sort,
-            func_enum.BVMul: sorts.get_sort,
-            func_enum.BVUdiv: sorts.get_sort,
-            func_enum.BVUrem: sorts.get_sort,
-            func_enum.BVShl: sorts.get_sort,
-            func_enum.BVAshr: sorts.get_sort,
-            func_enum.BVLshr: sorts.get_sort}
