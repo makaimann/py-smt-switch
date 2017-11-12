@@ -7,7 +7,7 @@ solver_dirs=(cvc4 z3 boolector)
 
 echo "Scanning for solvers"
 
-all_solvers=true
+all_logic_solvers=true
 
 for solver_dir in "${solver_dirs[@]}"
 do
@@ -17,12 +17,12 @@ do
         rm -rf ./smt_solvers
         wget http://web.stanford.edu/~makaim/files/smt_solvers.tar.gz
         tar -xzvf ./smt_solvers.tar.gz
-        all_solvers=false
+        all_logic_solvers=false
         break
     fi
 done
 
-if $all_solvers; then
+if $all_logic_solvers; then
     echo "Found all solvers"
 fi
 

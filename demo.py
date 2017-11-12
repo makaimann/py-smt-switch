@@ -328,18 +328,18 @@ if __name__ == '__main__':
     # you can pass solver names as command line arguments
     # to only use those solvers
     # However, they must be the same as one of the strings
-    # in all_solvers
-    all_solvers = ['CVC4', 'Boolector', 'Z3']
+    # in all_logic_solvers
+    all_logic_solvers = ['CVC4', 'Boolector', 'Z3']
     solvers = []
 
     if len(sys.argv) > 1:
         for arg in sys.argv[1:]:
-            if arg in all_solvers:
+            if arg in all_logic_solvers:
                 solvers.append(arg)
             else:
                 print('Ignoring {}, it is not the name of a supported solver\n'.format(arg))
     else:
-        solvers = all_solvers
+        solvers = all_logic_solvers
 
     print('Demonstrating the strict setting\n')
     strict_seq(solvers)

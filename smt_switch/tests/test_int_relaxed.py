@@ -1,6 +1,6 @@
 import pytest
 import smt_switch
-from smt_switch.tests import all_solvers
+from smt_switch.tests import all_logic_solvers
 
 
 smt = smt_switch.smt
@@ -17,7 +17,7 @@ def test_lia():
        Expect UNSAT
     '''
 
-    for name in all_solvers:  # iterate through the solvers
+    for name in all_logic_solvers:  # iterate through the solvers
         s = smt(name)
         s.SetLogic('QF_LIA')
         isort = s.ConstructSort(s.Int)
@@ -69,7 +69,7 @@ def test_ite():
        Expect UNSAT
     '''
 
-    for name in all_solvers:
+    for name in all_logic_solvers:
         s = smt(name)
 
         x1 = s.DeclareConst('x1', s.Int())
