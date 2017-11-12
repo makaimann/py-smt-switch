@@ -1,6 +1,6 @@
 import pytest
 from smt_switch import smt
-from smt_switch.tests import all_solvers
+from smt_switch.tests import all_logic_solvers
 
 
 def test_unsat_array():
@@ -8,7 +8,7 @@ def test_unsat_array():
     Simple example demonstrating array axiom
     '''
 
-    for name in all_solvers:
+    for name in all_logic_solvers:
         s = smt(name)
         s.SetLogic('QF_ABV')
 
@@ -34,7 +34,7 @@ def test_sat_array():
     '''
     Simple array test
     '''
-    for name in all_solvers:
+    for name in all_logic_solvers:
         s = smt(name)
         s.SetLogic('QF_ABV')
         s.SetOption("produce-models", 'true')

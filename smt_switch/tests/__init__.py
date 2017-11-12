@@ -1,8 +1,5 @@
 from smt_switch.src import solvers
 
-all_solvers = {'Z3': solvers.Z3Solver,
-               'CVC4': solvers.CVC4Solver}
+all_logic_solvers = {'Z3', 'CVC4'}
 
-bv_solvers = {'Z3': solvers.Z3Solver,
-              'CVC4': solvers.CVC4Solver,
-              'Boolector': solvers.BoolectorSolver}
+bv_solvers = {'Z3', 'CVC4', 'Boolector'}

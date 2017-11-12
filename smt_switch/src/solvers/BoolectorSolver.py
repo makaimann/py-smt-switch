@@ -63,7 +63,8 @@ class BoolectorSolver(SolverBase):
         # self._BoolectorResults = {sorts.BitVec: results.BoolectorBitVecResult,
         #                           sorts.Bool: results.BoolectorBitVecResult}
         self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN,
-                                  'random-seed': self.boolector.BTOR_OPT_SEED}
+                                  'random-seed': self.boolector.BTOR_OPT_SEED,
+                                  'incremental': self.boolector.BTOR_OPT_INCREMENTAL}
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV', 'QF_AUFBV']
@@ -157,6 +158,12 @@ class BoolectorSolver(SolverBase):
 
     def DefineFun(self, name, sortlist, paramlist, fundef):
         return self._btor.Fun(paramlist, fundef)
+
+    def Push(self):
+        raise NotImplementedError
+
+    def Pop(self):
+        raise NotImplementedError
 
     # extra functions specific to Boolector
     # And requires exactly two arguments in Boolector.

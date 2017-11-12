@@ -1,6 +1,6 @@
 import pytest
 from smt_switch import smt
-from smt_switch.tests import all_solvers
+from smt_switch.tests import all_logic_solvers
 
 
 def test_uf():
@@ -23,7 +23,7 @@ def test_uf():
         (check-sat)
     '''
 
-    for name in all_solvers:
+    for name in all_logic_solvers:
         s = smt(name)
         s.SetLogic('QF_UF')
 

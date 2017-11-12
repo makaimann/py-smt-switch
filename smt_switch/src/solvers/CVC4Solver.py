@@ -222,3 +222,9 @@ class CVC4Solver(SolverBase):
         lam = self._em.mkVar(name, funtype)
         self._smt.defineFunction(lam, paramlist, fundef)
         return lam
+
+    def Push(self):
+        self._smt.push()
+
+    def Pop(self):
+        self._smt.pop()

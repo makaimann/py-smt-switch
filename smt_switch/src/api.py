@@ -224,3 +224,9 @@ class smt:
         cfdata = functions.fdata(0, len(paramlist), len(paramlist))
         defined_op = functions.operator(self, func_info, cfdata)
         return defined_op
+
+    def Push(self):
+        self.solver.Push()
+
+    def Pop(self):
+        self.solver.Pop()

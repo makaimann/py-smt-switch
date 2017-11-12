@@ -224,3 +224,9 @@ class Z3Solver(SolverBase):
 
     def DefineFun(self, name, sortlist, paramlist, fundef):
         raise NotImplementedError("Z3 does not support the define-fun macro through the API.")
+
+    def Push(self):
+        self._solver.push()
+
+    def Pop(self):
+        self._solver.pop()

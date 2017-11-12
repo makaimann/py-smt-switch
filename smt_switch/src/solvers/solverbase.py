@@ -81,6 +81,14 @@ class SolverBase(metaclass=ABCMeta):
     def DefineFun(self, name, sortlist, paramlist, fundef):
         pass
 
+    @abstractmethod
+    def Push(self):
+        pass
+
+    @abstractmethod
+    def Pop(self):
+        pass
+
     def _translate_sorts(self, sort):
         '''
         Recursive function for translating parameterized sorts
