@@ -46,6 +46,9 @@ class TermBase(metaclass=ABCMeta):
         else:
             return self._smt.ApplyFun(self._smt.Add, self, other)
 
+    def __radd__(self, other):
+        return self.__add__(other)
+
     def __sub__(self, other):
         # override for bitvectors
         if self.sort.__class__ == sorts.BitVec:
@@ -53,12 +56,46 @@ class TermBase(metaclass=ABCMeta):
         else:
             return self._smt.ApplyFun(self._smt.Sub, self, other)
 
+    def __rsub__(self, other):
+        # override for bitvectors
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVSub, other, self)
+        else:
+            return self._smt.ApplyFun(self._smt.Sub, other, self)
+
     def __neg__(self):
         if self.sort.__class__ == sorts.BitVec:
             return self._smt.ApplyFun(self._smt.BVNeg, self)
         else:
             zero = self._smt.TheoryConst(self.sort, 0)
             return self._smt.ApplyFun(self._smt.Sub, zero, self)
+
+    def __mul__(self, other):
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVMul, self, other)
+        else:
+            raise NotImplementedError("Haven't added nonlinear arithmetic operators yet.")
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __mod__(self, other):
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVUrem, self, other)
+        else:
+            raise NotImplementedError("Haven't added nonlinear arithmetic operators yet.")
+
+    def __truediv__(self, other):
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVUdiv, self, other)
+        else:
+            raise NotImplementedError("Haven't added nonlinear arithmetic operators yet.")
+
+    def __rtruediv__(self, other):
+        if self.sort.__class__ == sorts.BitVec:
+            return self._smt.ApplyFun(self._smt.BVUdiv, other, self)
+        else:
+            raise NotImplementedError("Haven't added nonlinear arithmetic operators yet.")
 
     def __lt__(self, other):
         assert not hasattr(other, "sort") or self.sort == other.sort, \
@@ -337,7 +374,7 @@ class Z3Term(TermBase):
             kvpairs.append(t)
             expr = expr.children()[0]
 
-        return kvpairs    
+        return kvpairs
 
 
 class BoolectorTerm(TermBase):
