@@ -91,6 +91,28 @@ def test_bv_extract():
         assert s.Sat  # in fact it's actually valid
 
 
+def test_bv_multdivide():
+    '''
+    Simple bitvector example with multiply and divide operators
+    '''
+    for name in bv_solvers:
+        print(name)
+        s = smt(name)
+        s.SetLogic("QF_BV")
+        s.SetOption("produce-models", 'true')
+
+        x = s.DeclareConst('x', s.BitVec(16))
+        y = s.DeclareConst('y', s.BitVec(16))
+
+        s.Assert(3*x + y == 16)
+        s.Assert(y/5 == 2)
+        s.Assert(y % 8 == 2)
+
+        s.CheckSat()
+        assert s.GetValue(x).as_int() == 2
+        assert s.GetValue(y).as_int() == 10
+
+
 def test_bv_boolops():
     '''
        Sets
@@ -148,7 +170,7 @@ def test_bv_boolops():
 
 def test_bv_arithops():
     '''
-       Set 
+       Set
           bv1 = 0001
           bv2 = 0010
           bv3 = 0101
@@ -213,6 +235,7 @@ def test_bv128():
 
 if __name__ == "__main__":
     test_bv_ops()
+    test_bv_multdivide()
     test_bv_extract()
     test_bv_boolops()
     test_bv_arithops()
