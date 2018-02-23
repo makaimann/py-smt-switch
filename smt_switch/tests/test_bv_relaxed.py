@@ -239,7 +239,7 @@ def test_r_ops():
         s.SetOption('produce-models', 'true')
         s.SetLogic('QF_BV')
 
-        bvsort8 = sorts.BitVec(8)
+        bvsort8 = s.BitVec(8)
         x1 = s.DeclareConst('x1', bvsort8)
         x2 = s.DeclareConst('x2', bvsort8)
         x3 = s.DeclareConst('x3', bvsort8)
