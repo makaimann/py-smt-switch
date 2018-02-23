@@ -233,6 +233,18 @@ def test_bv128():
             assert False, 'Issue representing bit vector of width 128'
 
 
+def test_r_ops():
+    for name in bv_solvers:
+        s = smt(name)
+        s.SetOption('produce-models', 'true')
+        s.SetLogic('QF_BV')
+
+        bvsort8 = sorts.BitVec(8)
+        x1 = s.DeclareConst('x1', bvsort8)
+        x2 = s.DeclareConst('x2', bvsort8)
+        x3 = s.DeclareConst('x3', bvsort8)
+
+
 if __name__ == "__main__":
     test_bv_ops()
     test_bv_multdivide()

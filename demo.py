@@ -6,7 +6,7 @@
 import sys
 from smt_switch import smt
 
-# Below are some examples and general comments to help you get started 
+# Below are some examples and general comments to help you get started
 
 # To translate commands/functions from smt-lib, capitalize the first letter of
 # each word and remove all dashes
@@ -21,10 +21,7 @@ from smt_switch import smt
 # Current Smt-Switch Limitations:
 # As of now, there are many unsupported features and theories
 #  - The only sorts thus far are BitVec, Bool, Int and Real
-#  - The only options supported by all solvers are produce-models and produce-assertions
-#  - There is no declare-fun equivalent, however you can write a Python function
-#      to get the same behavior
-#  - There is no support for incremental solving, yet
+#  - The only options supported by all solvers are produce-models, produce-assertions and incremental
 #
 # Children of terms are currently kept track of at the API level
 # --> in a future version, they will be queried from the SMT solver

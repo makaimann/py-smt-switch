@@ -31,7 +31,7 @@ def test_pushpop():
     '''
     Same simple example but with push and pop
     '''
-    
+
     for name in all_logic_solvers:
         s = smt(name)
         s.SetLogic('QF_BV')

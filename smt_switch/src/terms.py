@@ -150,10 +150,20 @@ class TermBase(metaclass=ABCMeta):
             other = self._smt.TheoryConst(self.sort, other)
         return self._smt.ApplyFun(self._smt.BVShl, self, other)
 
+    def __rlshift__(self, other):
+        if not issubclass(other.__class__, TermBase):
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVShl, other, self)
+
     def __rshift__(self, other):
         if not issubclass(other.__class__, TermBase):
             other = self._smt.TheoryConst(self.sort, other)
         return self._smt.ApplyFun(self._smt.BVAshr, self, other)
+
+    def __rrshift__(self, other):
+        if not issubclass(other.__class__, TermBase):
+            other = self._smt.TheoryConst(self.sort, other)
+        return self._smt.ApplyFun(self._smt.BVAshr, other, self)
 
     def __invert__(self):
         assert self.sort.__class__ == sorts.BitVec
