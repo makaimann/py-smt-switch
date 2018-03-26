@@ -84,7 +84,9 @@ class Z3Solver(SolverBase):
                    func_enum.BVNot: lambda arg: ~arg,
                    func_enum.BVNeg: lambda arg: -arg,
                    func_enum.Store: self.z3.Store,
-                   func_enum.Select: self.z3.Select}
+                   func_enum.Select: self.z3.Select,
+                   func_enum.Distinct: self.z3.Distinct
+        }
 
         self._z3Funs2swFuns = {self.z3.Z3_OP_EXTRACT: func_enum.Extract,
                           self.z3.Z3_OP_CONCAT: func_enum.Concat,
@@ -128,7 +130,8 @@ class Z3Solver(SolverBase):
                           self.z3.Z3_OP_ANUM: func_enum.No_op,
                           self.z3.Z3_OP_BNUM: func_enum.No_op,
                           self.z3.Z3_OP_STORE: func_enum.Store,
-                          self.z3.Z3_OP_SELECT: func_enum.Select}
+                          self.z3.Z3_OP_SELECT: func_enum.Select,
+                          self.z3.Z3_OP_DISTINCT: func_enum.Distinct}
 
 
         self._z3Consts = {sorts.BitVec: self.z3.BitVecVal,

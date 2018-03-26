@@ -159,6 +159,9 @@ class CVC4Solver(SolverBase):
 
     def ApplyFun(self, f_enum, indices, *args):
 
+        if f_enum not in self._CVC4Funs:
+            raise NotImplementedError("{} has not been implemented in CVC4 yet".format(f_enum))
+
         cvc4fun = self._CVC4Funs[f_enum]
 
         # check if just indexer or needs to be evaluated

@@ -114,6 +114,8 @@ class BoolectorSolver(SolverBase):
         return btortconst
 
     def ApplyFun(self, f_enum, indices, *args):
+        if f_enum not in self._BoolectorFuns:
+            raise NotImplementedError("{} has not been implemented in Boolector yet".format(f_enum))
         btor_expr = self._BoolectorFuns[f_enum](*(args + indices))
         return btor_expr
 
