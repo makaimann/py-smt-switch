@@ -25,9 +25,9 @@ class CVC4Solver(SolverBase):
         self._em = self.CVC4.ExprManager(opts)
 
         self._smt = self.CVC4.SmtEngine(self._em)
-        self.temp_file_name = "cvc4-out.smt2"
-        self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
-        self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
+        # self.temp_file_name = "cvc4-out.smt2"
+        # self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
+        # self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
 
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
@@ -209,8 +209,9 @@ class CVC4Solver(SolverBase):
             raise RuntimeError('Solver has not been run')
 
     def ToSmt2(self, filename):
-        wd = os.getcwd()
-        os.rename(os.getcwd() + "/" + self.temp_file_name, filename)
+        raise Warning("ToSmt2 not currently supported with latest CVC4 API")
+        # wd = os.getcwd()
+        # os.rename(os.getcwd() + "/" + self.temp_file_name, filename)
 
     def Symbol(self, name, sort):
         cvc4sort = self._CVC4Sorts[sort.__class__](*sort.params)
