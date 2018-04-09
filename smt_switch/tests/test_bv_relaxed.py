@@ -245,25 +245,26 @@ def test_r_ops():
         x3 = s.DeclareConst('x3', bvsort8)
 
 def test_distinct():
-    # Currently only implemented in Z3
-    s = smt("Z3")
-    s.SetOption('produce-models', 'true')
-    s.SetLogic('QF_BV')
+    # Currently only implemented in Z3 and CVC4
+    for n in ["CVC4", "Z3"]:
+        s = smt(n)
+        s.SetOption('produce-models', 'true')
+        s.SetLogic('QF_BV')
 
-    bvsort8 = s.BitVec(8)
-    x1 = s.DeclareConst('x1', bvsort8)
-    x2 = s.DeclareConst('x2', bvsort8)
-    x3 = s.DeclareConst('x3', bvsort8)
+        bvsort8 = s.BitVec(8)
+        x1 = s.DeclareConst('x1', bvsort8)
+        x2 = s.DeclareConst('x2', bvsort8)
+        x3 = s.DeclareConst('x3', bvsort8)
 
-    s.Assert(s.Distinct([x1, x2, x3]))
+        s.Assert(s.Distinct([x1, x2, x3]))
 
-    assert s.CheckSat()
+        assert s.CheckSat()
 
-    x1val = s.GetValue(x1).as_int()
-    x2val = s.GetValue(x2).as_int()
-    x3val = s.GetValue(x3).as_int()
+        x1val = s.GetValue(x1).as_int()
+        x2val = s.GetValue(x2).as_int()
+        x3val = s.GetValue(x3).as_int()
 
-    assert x1val != x2val and x1val != x3val and x2val != x3val
+        assert x1val != x2val and x1val != x3val and x2val != x3val
 
 if __name__ == "__main__":
     test_bv_ops()

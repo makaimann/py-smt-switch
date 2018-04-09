@@ -84,7 +84,9 @@ class CVC4Solver(SolverBase):
                           func_enum.BVNeg: self.CVC4.BITVECTOR_NEG,
                           func_enum._ApplyUF: self.CVC4.APPLY_UF,
                           func_enum.Select: self.CVC4.SELECT,
-                          func_enum.Store: self.CVC4.STORE})
+                          func_enum.Store: self.CVC4.STORE,
+                          func_enum.Distinct: self.CVC4.DISTINCT
+          })
 
         # all constants are No_op
         self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
