@@ -85,3 +85,23 @@ class Array(SortBase):
     @property
     def params(self):
         return (self._idxsort, self._dsort)
+
+
+class FP(SortBase):
+    ''' Floating Point sort '''
+    def __init__(self, expbits, sigbits):
+        super().__init__('(FP {} {})'.format(expbits, sigbits))
+        self._expbits = expbits
+        self._sigbits = sigbits
+
+    @property
+    def expbits(self):
+        return self._expbits
+
+    @property
+    def sigbits(self):
+        return self._sigbits
+
+    @property
+    def params(self):
+        return (self._expbits, self._sigbits)

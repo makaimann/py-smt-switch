@@ -1,7 +1,8 @@
 # This file is part of the smt-switch project.
 # See the file LICENSE in the top-level source directory for licensing information.
 
-from collections import Sequence
+from collections import Sequence, namedtuple
+
 from . import sorts
 from . import functions
 from . import terms
@@ -126,8 +127,9 @@ class smt:
         return self.__term_map[self.solver.__class__](self,
                                                       sconst)
 
-    def TheoryConst(self, sort, value):
-        stconst = self.solver.TheoryConst(sort, value)
+    def TheoryConst(self, sort, *values):
+        values = [v.solver_term if hasattr(v, 'solver_term') else v for v in values]
+        stconst = self.solver.TheoryConst(sort, *values)
         return self.__term_map[self.solver.__class__](self,
                                                       stconst)
 
@@ -230,3 +232,26 @@ class smt:
 
     def Pop(self):
         self.solver.Pop()
+
+    @property
+    def Round(self):
+        '''
+        Returns a namedtuple containing integers encoding the type of Floating Point Rounding
+
+        Intended for use with a solver supporting floating point queries.
+        '''
+        return Round
+
+
+# duplicate fenv.h values
+# make available through Round
+fenv = namedtuple("fenv", "FE_TONEAREST FE_DOWNWARD FE_UPWARD FE_TOWARDZERO RNE RTN RTP RTZ RNA")
+FE_TONEAREST = 0
+FE_DOWNWARD = 0x400
+FE_UPWARD = 0x800
+FE_TOWARDZERO = 0xc00
+
+Round = fenv(FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO,
+             FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO,
+             (((~FE_TONEAREST) & 0x1) | ((~FE_UPWARD) & 0x2) |
+              ((~FE_DOWNWARD) & 0x4) | ((~FE_TOWARDZERO) & 0x8)))
