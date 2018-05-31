@@ -68,6 +68,19 @@ class smt:
 
         self._strict = strict
 
+        # create attributes and namedtuples for special solver constants
+        # these are used for particular tasks, such as rounding in Floating
+        # Point solving but do not fit into the general term structure
+        if hasattr(self._solver, '_special_consts'):
+            for k, v in self._solver._special_consts.items():
+                assert isinstance(v, dict), 'Expecting special consts to be <dict str: <dict str: solver_term>>'
+
+                wrapped_consts = {s: terms.WrapperTerm(self, t) for s, t in v.items()}
+                NT = namedtuple(k, wrapped_consts.keys())(**wrapped_consts)
+                assert not hasattr(self, k), "Special Const name {} is already an api function".format(k)
+
+                setattr(self, k, NT)
+
     def ConstructFun(self, fun, *args):
         # partial function evaluation all handled internally
         return fun(*args)
@@ -232,26 +245,3 @@ class smt:
 
     def Pop(self):
         self.solver.Pop()
-
-    @property
-    def Round(self):
-        '''
-        Returns a namedtuple containing integers encoding the type of Floating Point Rounding
-
-        Intended for use with a solver supporting floating point queries.
-        '''
-        return Round
-
-
-# duplicate fenv.h values
-# make available through Round
-fenv = namedtuple("fenv", "FE_TONEAREST FE_DOWNWARD FE_UPWARD FE_TOWARDZERO RNE RTN RTP RTZ RNA")
-FE_TONEAREST = 0
-FE_DOWNWARD = 0x400
-FE_UPWARD = 0x800
-FE_TOWARDZERO = 0xc00
-
-Round = fenv(FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO,
-             FE_TONEAREST, FE_DOWNWARD, FE_UPWARD, FE_TOWARDZERO,
-             (((~FE_TONEAREST) & 0x1) | ((~FE_UPWARD) & 0x2) |
-              ((~FE_DOWNWARD) & 0x4) | ((~FE_TOWARDZERO) & 0x8)))

@@ -6,7 +6,7 @@ from ..functions import func_enum
 from .solverbase import SolverBase
 from fractions import Fraction
 from smt_switch.util import reversabledict
-from collections import Sequence
+from collections import Sequence, namedtuple
 import os
 
 
@@ -115,7 +115,30 @@ class CVC4Solver(SolverBase):
                             # Note: losing info about op of applied function
                             # TODO: see if can extract function definition
                             self.CVC4.APPLY: func_enum.No_op,
-                            self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract}
+                            self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract,
+                            self.CVC4.FLOATINGPOINT_FP: func_enum.No_op,
+                            self.CVC4.NULL_EXPR: func_enum.No_op}
+
+        # special constants for floating point solver
+        # duplicate fenv.h values
+        # make available through self._round
+        FE_TONEAREST = 0
+        FE_DOWNWARD = 0x400
+        FE_UPWARD = 0x800
+        FE_TOWARDZERO = 0xc00
+
+        self._round = {
+            'RNE': self._em.mkConst(FE_TONEAREST),
+            'RTN': self._em.mkConst(FE_DOWNWARD),
+            'RTP': self._em.mkConst(FE_UPWARD),
+            'RTZ': self._em.mkConst(FE_TOWARDZERO),
+            'RNA': self._em.mkConst(((~FE_TONEAREST) & 0x1) | ((~FE_UPWARD) & 0x2) |
+                            ((~FE_DOWNWARD) & 0x4) | ((~FE_TOWARDZERO) & 0x8))
+        }
+
+        # The api creates an attribute for each entry in this dictionary,
+        # and creates a namedtuple out of each value
+        self._special_consts = {'Round': self._round}
 
         # Theory constant functions
         def create_bv(width, value):
@@ -261,3 +284,12 @@ class CVC4Solver(SolverBase):
 
     def Pop(self):
         self._smt.pop()
+
+    @property
+    def Round(self):
+        '''
+        Returns a namedtuple containing integers encoding the type of Floating Point Rounding
+
+        Intended for use with a solver supporting floating point queries.
+        '''
+        return self._round

@@ -205,12 +205,21 @@ class CVC4Term(TermBase):
                           'bitvec': lambda p: sorts.BitVec(p),
                           'bool': lambda p: sorts.Bool(),
                           'boolean': lambda p: sorts.Bool(),
-                          'array': lambda ids, ds: sorts.Array(ids, ds)
+                          'array': lambda ids, ds: sorts.Array(ids, ds),
+                          'floatingpoint': lambda exp, sig: sorts.FP(exp, sig)
                           }
 
-        p = re.compile('\(?(_ )?(?P<sort>int|real|bitvector|bitvec|bool|array)\s?\(?(?P<param>\d+)?\)?')
+        p = re.compile('\(?(_ )?(?P<sort>floatingpoint|int|real|bitvector|bitvec|bool|array)\s?\(?(?P<param>\d+)?\)?')
 
-        cvc4sortstr = solver_term.getType().toString().lower()
+        if solver_term.toString() != 'null':
+            cvc4sortstr = solver_term.getType().toString().lower()
+        else:
+            # HACK
+            # special-casing for FloatingPoint ops
+            children = solver_term.getChildren()
+            assert len(children) > 0, "Expecting FP Op Node with children"
+            cvc4sortstr = solver_term.getChildren()[0].getType().toString().lower()
+
         match = p.search(cvc4sortstr)
 
         if not match:
@@ -228,6 +237,12 @@ class CVC4Term(TermBase):
             idxsort = self._str2sort[idxmatch.group('sort')](idxmatch.group('param'))
             dsort = self._str2sort[dmatch.group('sort')](dmatch.group('param'))
             params = (idxsort, dsort)
+
+        elif 'floatingpoint' in cvc4sortstr:
+            # regex not quite right for floatingpoint
+            # TODO: Fix regex without breaking other sorts
+            sig, exp = cvc4sortstr[cvc4sortstr.find('floatingpoint')+len('floatingpoint '):].replace(")", "").split()
+            params = (int(sig), int(exp))
 
         elif 'bitvec' in match.group('sort'):
             assert match.group('param'), 'BitVecs must have a width'
@@ -432,6 +447,23 @@ class BoolectorTerm(TermBase):
     @property
     def children(self):
         raise NotImplementedError('Boolector does not support querying children.')
+
+
+class WrapperTerm:
+    '''
+    Holds an arbitrary solver object. Used for special solver constants that can't be combined into arbitrary expressions or just don't fit into the general term structure for some reason
+    '''
+    def __init__(self, smt, solver_term):
+        self._smt = smt
+        self._solver_term = solver_term
+
+    @property
+    def smt(self):
+        return self._smt
+
+    @property
+    def solver_term(self):
+        return self._solver_term
 
 
 def __bool_fun(*args):
