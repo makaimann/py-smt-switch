@@ -19,7 +19,7 @@ addons:
             - cmake
             - zlib1g
             - zlib1g-dev
-            - g++-4.9
+            - g++-6
             - build-essential
             - swig2.0
             - libcln-dev	
