@@ -19,8 +19,9 @@ def test_basic():
         b42 = s.TheoryConst(s.BitVec(24), 42)
 
         # TODO: Handle python integers correctly
-        f = s.TheoryConst(s.FP(8, 24), b0, b200, b468)
-        f2 = s.TheoryConst(s.FP(8, 24), b0, b152, b42)
+        # Note: There's a "hidden" bit which makes it 25 instead of 24
+        f = s.TheoryConst(s.FP(8, 25), b0, b200, b468)
+        f2 = s.TheoryConst(s.FP(8, 25), b0, b152, b42)
 
         fc = s.DeclareConst("fc", s.FP(8, 25))
         fc2 = s.DeclareConst("fc2", s.FP(8, 25))

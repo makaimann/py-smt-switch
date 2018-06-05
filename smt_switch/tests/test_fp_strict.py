@@ -15,7 +15,7 @@ def test_basic():
         bvsort8 = s.ConstructSort(s.BitVec, 8)
         bvsort24 = s.ConstructSort(s.BitVec, 24)
 
-        fpsort8_24 = s.ConstructSort(s.FP, 8, 24)
+        # Note: There's a "hidden" bit which makes it 25 instead of 24
         fpsort8_25 = s.ConstructSort(s.FP, 8, 25)
 
         b0 = s.TheoryConst(bvsort1, 0)
@@ -25,8 +25,8 @@ def test_basic():
         b152 = s.TheoryConst(s.BitVec(8), 152)
         b42 = s.TheoryConst(s.BitVec(24), 42)
 
-        f = s.TheoryConst(fpsort8_24, b0, b200, b468)
-        f2 = s.TheoryConst(fpsort8_24, b0, b152, b42)
+        f = s.TheoryConst(fpsort8_25, b0, b200, b468)
+        f2 = s.TheoryConst(fpsort8_25, b0, b152, b42)
 
         fc = s.DeclareConst("fc", fpsort8_25)
         fc2 = s.DeclareConst("fc2", fpsort8_25)
