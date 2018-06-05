@@ -128,13 +128,16 @@ class CVC4Solver(SolverBase):
         FE_TOWARDZERO = 0xc00
 
         self._round = {
-            'RNE': self._em.mkConst(FE_TONEAREST),
-            'RTN': self._em.mkConst(FE_DOWNWARD),
-            'RTP': self._em.mkConst(FE_UPWARD),
-            'RTZ': self._em.mkConst(FE_TOWARDZERO),
-            'RNA': self._em.mkConst(((~FE_TONEAREST) & 0x1) | ((~FE_UPWARD) & 0x2) |
-                            ((~FE_DOWNWARD) & 0x4) | ((~FE_TOWARDZERO) & 0x8))
+            'RNE': self._em.mkVar(self._em.roundingModeType(), FE_TONEAREST),
+            'RTN': self._em.mkVar(self._em.roundingModeType(), FE_DOWNWARD),
+            'RTP': self._em.mkVar(self._em.roundingModeType(), FE_UPWARD),
+            'RTZ': self._em.mkVar(self._em.roundingModeType(), FE_TOWARDZERO),
+            'RNA': self._em.mkVar(self._em.roundingModeType(), ((~FE_TONEAREST) & 0x1) | ((~FE_UPWARD) & 0x2) |
+                                    ((~FE_DOWNWARD) & 0x4) | ((~FE_TOWARDZERO) & 0x8))
         }
+
+        # set the default
+        self._round['default'] = self._round['RNE']
 
         # The api creates an attribute for each entry in this dictionary,
         # and creates a namedtuple out of each value

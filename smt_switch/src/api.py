@@ -1,7 +1,8 @@
 # This file is part of the smt-switch project.
 # See the file LICENSE in the top-level source directory for licensing information.
 
-from collections import Sequence, namedtuple
+from collections import Sequence
+from types import SimpleNamespace
 
 from . import sorts
 from . import functions
@@ -68,7 +69,7 @@ class smt:
 
         self._strict = strict
 
-        # create attributes and namedtuples for special solver constants
+        # create attributes and SimpleNamespaces for special solver constants
         # these are used for particular tasks, such as rounding in Floating
         # Point solving but do not fit into the general term structure
         if hasattr(self._solver, '_special_consts'):
@@ -76,7 +77,7 @@ class smt:
                 assert isinstance(v, dict), 'Expecting special consts to be <dict str: <dict str: solver_term>>'
 
                 wrapped_consts = {s: terms.WrapperTerm(self, t) for s, t in v.items()}
-                NT = namedtuple(k, wrapped_consts.keys())(**wrapped_consts)
+                NT = SimpleNamespace(**wrapped_consts)
                 assert not hasattr(self, k), "Special Const name {} is already an api function".format(k)
 
                 setattr(self, k, NT)

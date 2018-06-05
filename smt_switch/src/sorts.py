@@ -5,7 +5,7 @@ from abc import ABCMeta, abstractmethod
 import inspect
 
 
-__all__ = ['BitVec', 'Int', 'Real', 'Bool', 'Array', 'FP']
+__all__ = ['BitVec', 'Int', 'Real', 'Bool', 'Array', 'FP', '_RoundingMode']
 
 class SortBase(metaclass=ABCMeta):
     @abstractmethod
@@ -105,3 +105,22 @@ class FP(SortBase):
     @property
     def params(self):
         return (self._expbits, self._sigbits)
+
+    def __eq__(self, other):
+        # Need None parameters to match with anything
+        return isinstance(other, type(self)) and \
+               ((self.params[0] == other.params[0]) or (None in (self.params[0], other.params[0]))) and \
+               ((self.params[1] == other.params[1]) or (None in (self.params[1], other.params[1])))
+
+    def __ne__(self, other):
+        # Need None parameters to match with anything
+        return not self.__eq__(other)
+
+
+class _RoundingMode(SortBase):
+    '''
+    RoundingMode for FloatingPoint
+    Should never need to instantiate this as a user
+    '''
+    def __init__(self):
+        super().__init__('RoundingMode', [])
