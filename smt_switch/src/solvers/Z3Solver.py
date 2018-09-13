@@ -137,7 +137,7 @@ class Z3Solver(SolverBase):
         self._z3Consts = {sorts.BitVec: self.z3.BitVecVal,
                      sorts.Int: self.z3.IntVal,
                      sorts.Real: self.z3.RealVal,
-                     sorts.Bool: lambda x: x}
+                     sorts.Bool: self.z3.BoolVal}
         self._z3Options = {'produce-models': 'model',
                       'random-seed': 'smt.random_seed'}
 
