@@ -12,8 +12,16 @@ import math
 class BoolectorSolver(SolverBase):
     def __init__(self, strict):
         super().__init__(strict)
-        
-        self.boolector = __import__('boolector')
+
+        try:
+            # latest version of boolector
+            self.boolector = __import__('pyboolector')
+        except:
+            self.boolector = __import__('boolector')
+            print("""Deprecation Warning: It appears that you're using an old version of boolector.
+            This might work fine for now but will not be supported going forward. If you get strange behavior,
+            consider upgrading to the latest boolector release from github.
+            """)
         self._btor = self.boolector.Boolector()
 
         # keeping track of Assertions because couldn't figure out
