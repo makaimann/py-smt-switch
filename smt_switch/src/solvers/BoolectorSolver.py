@@ -170,10 +170,10 @@ class BoolectorSolver(SolverBase):
         return self._btor.Fun(paramlist, fundef)
 
     def Push(self):
-        raise NotImplementedError
+        return self._btor.Push()
 
     def Pop(self):
-        raise NotImplementedError
+        return self._btor.Pop()
 
     # extra functions specific to Boolector
     # And requires exactly two arguments in Boolector.
