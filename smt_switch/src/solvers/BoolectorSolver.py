@@ -72,7 +72,8 @@ class BoolectorSolver(SolverBase):
         #                           sorts.Bool: results.BoolectorBitVecResult}
         self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN,
                                   'random-seed': self.boolector.BTOR_OPT_SEED,
-                                  'incremental': self.boolector.BTOR_OPT_INCREMENTAL}
+                                  'incremental': self.boolector.BTOR_OPT_INCREMENTAL,
+                                  'sat-solver': self._btor.Set_sat_solver}
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV', 'QF_AUFBV']
@@ -95,7 +96,13 @@ class BoolectorSolver(SolverBase):
 
     def SetOption(self, optionstr, value):
         if optionstr in self._BoolectorOptions:
-            self._btor.Set_opt(self._BoolectorOptions[optionstr], bool(value))
+            opt = self._BoolectorOptions[optionstr]
+            if isinstance(opt, int):
+                self._btor.Set_opt(opt, bool(value))
+            elif callable(opt):
+                opt(value)
+            else:
+                raise ValueError("Unhandled option: " + optionstr)
 
     def DeclareFun(self, name, inputsorts, outputsort):
         assert isinstance(inputsorts, Sequence), \
