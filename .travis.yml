@@ -20,7 +20,7 @@ addons:
             - zlib1g
             - zlib1g-dev
             - g++-4.9
-            - stdc++6
+            - libstdc++6
             - build-essential
             - swig2.0
             - libcln-dev	
