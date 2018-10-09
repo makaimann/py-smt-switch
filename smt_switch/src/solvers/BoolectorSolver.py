@@ -7,6 +7,7 @@ from functools import reduce
 from ..functions import func_enum
 from collections import Sequence
 import math
+import time
 
 
 class BoolectorSolver(SolverBase):
@@ -70,10 +71,16 @@ class BoolectorSolver(SolverBase):
         #       so smt_switch is not either (specifically for Boolector)
         # self._BoolectorResults = {sorts.BitVec: results.BoolectorBitVecResult,
         #                           sorts.Bool: results.BoolectorBitVecResult}
+
+        def timer(start_time, duration):
+            return time.time() - start_time > duration
+
         self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN,
                                   'random-seed': self.boolector.BTOR_OPT_SEED,
                                   'incremental': self.boolector.BTOR_OPT_INCREMENTAL,
-                                  'sat-solver': self._btor.Set_sat_solver}
+                                  'sat-solver': self._btor.Set_sat_solver,
+                                  'timeout': lambda t: self._btor.Set_term(timer, (time.time(), t))
+    }
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV', 'QF_AUFBV']
