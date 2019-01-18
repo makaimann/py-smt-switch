@@ -17,17 +17,14 @@ class CVC4Solver(SolverBase):
     def __init__(self, strict):
         super().__init__(strict)
 
-        # import CVC4
-        self.CVC4 = __import__('CVC4')
+        opts = self.module.Options()
+        opts.setOutputLanguage(self.module.OUTPUT_LANG_SMTLIB_V2_5)
+        self._em = self.module.ExprManager(opts)
 
-        opts = self.CVC4.Options()
-        opts.setOutputLanguage(self.CVC4.OUTPUT_LANG_SMTLIB_V2_5)
-        self._em = self.CVC4.ExprManager(opts)
-
-        self._smt = self.CVC4.SmtEngine(self._em)
+        self._smt = self.module.SmtEngine(self._em)
         self.temp_file_name = "cvc4-out.smt2"
-        self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
-        self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
+        self._smt.setOption("dump-to", self.module.SExpr(self.temp_file_name))
+        self._smt.setOption("dump", self.module.SExpr("raw-benchmark"))
 
         self._CVC4Sorts = {sorts.BitVec: self._em.mkBitVectorType,
                            sorts.Int: self._em.integerType,
@@ -47,69 +44,69 @@ class CVC4Solver(SolverBase):
         self._tosorts = self._CVC4Sorts
 
         self._CVC4Funs = \
-          reversabledict({func_enum.Extract: self.CVC4.BitVectorExtract,
-                          func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
-                          func_enum.ZeroExt: self.CVC4.BITVECTOR_ZERO_EXTEND,
-                          func_enum.Equals: self.CVC4.EQUAL,
-                          func_enum.Not: self.CVC4.NOT,
-                          func_enum.And: self.CVC4.AND,
-                          func_enum.Or: self.CVC4.OR,
-                          func_enum.Ite: self.CVC4.ITE,
-                          func_enum.Sub: self.CVC4.MINUS,
-                          func_enum.Add: self.CVC4.PLUS,
-                          func_enum.LT: self.CVC4.LT,
-                          func_enum.LEQ: self.CVC4.LEQ,
-                          func_enum.GT: self.CVC4.GT,
-                          func_enum.GEQ: self.CVC4.GEQ,
-                          func_enum.BVAnd: self.CVC4.BITVECTOR_AND,
-                          func_enum.BVOr: self.CVC4.BITVECTOR_OR,
-                          func_enum.BVXor: self.CVC4.BITVECTOR_XOR,
-                          func_enum.BVAdd: self.CVC4.BITVECTOR_PLUS,
-                          func_enum.BVSub: self.CVC4.BITVECTOR_SUB,
-                          func_enum.BVMul: self.CVC4.BITVECTOR_MULT,
-                          func_enum.BVUdiv: self.CVC4.BITVECTOR_UDIV,
-                          func_enum.BVUrem: self.CVC4.BITVECTOR_UREM,
-                          func_enum.BVShl: self.CVC4.BITVECTOR_SHL,
-                          func_enum.BVAshr: self.CVC4.BITVECTOR_ASHR,
-                          func_enum.BVLshr: self.CVC4.BITVECTOR_LSHR,
-                          func_enum.BVUlt: self.CVC4.BITVECTOR_ULT,
-                          func_enum.BVUle: self.CVC4.BITVECTOR_ULE,
-                          func_enum.BVUgt: self.CVC4.BITVECTOR_UGT,
-                          func_enum.BVUge: self.CVC4.BITVECTOR_UGE,
-                          func_enum.BVSlt: self.CVC4.BITVECTOR_SLT,
-                          func_enum.BVSle: self.CVC4.BITVECTOR_SLE,
-                          func_enum.BVSgt: self.CVC4.BITVECTOR_SGT,
-                          func_enum.BVSge: self.CVC4.BITVECTOR_SGE,
-                          func_enum.BVNot: self.CVC4.BITVECTOR_NOT,
-                          func_enum.BVNeg: self.CVC4.BITVECTOR_NEG,
-                          func_enum._ApplyUF: self.CVC4.APPLY_UF,
-                          func_enum.Select: self.CVC4.SELECT,
-                          func_enum.Store: self.CVC4.STORE,
-                          func_enum.Distinct: self.CVC4.DISTINCT
+          reversabledict({func_enum.Extract: self.module.BitVectorExtract,
+                          func_enum.Concat: self.module.BITVECTOR_CONCAT,
+                          func_enum.ZeroExt: self.module.BITVECTOR_ZERO_EXTEND,
+                          func_enum.Equals: self.module.EQUAL,
+                          func_enum.Not: self.module.NOT,
+                          func_enum.And: self.module.AND,
+                          func_enum.Or: self.module.OR,
+                          func_enum.Ite: self.module.ITE,
+                          func_enum.Sub: self.module.MINUS,
+                          func_enum.Add: self.module.PLUS,
+                          func_enum.LT: self.module.LT,
+                          func_enum.LEQ: self.module.LEQ,
+                          func_enum.GT: self.module.GT,
+                          func_enum.GEQ: self.module.GEQ,
+                          func_enum.BVAnd: self.module.BITVECTOR_AND,
+                          func_enum.BVOr: self.module.BITVECTOR_OR,
+                          func_enum.BVXor: self.module.BITVECTOR_XOR,
+                          func_enum.BVAdd: self.module.BITVECTOR_PLUS,
+                          func_enum.BVSub: self.module.BITVECTOR_SUB,
+                          func_enum.BVMul: self.module.BITVECTOR_MULT,
+                          func_enum.BVUdiv: self.module.BITVECTOR_UDIV,
+                          func_enum.BVUrem: self.module.BITVECTOR_UREM,
+                          func_enum.BVShl: self.module.BITVECTOR_SHL,
+                          func_enum.BVAshr: self.module.BITVECTOR_ASHR,
+                          func_enum.BVLshr: self.module.BITVECTOR_LSHR,
+                          func_enum.BVUlt: self.module.BITVECTOR_ULT,
+                          func_enum.BVUle: self.module.BITVECTOR_ULE,
+                          func_enum.BVUgt: self.module.BITVECTOR_UGT,
+                          func_enum.BVUge: self.module.BITVECTOR_UGE,
+                          func_enum.BVSlt: self.module.BITVECTOR_SLT,
+                          func_enum.BVSle: self.module.BITVECTOR_SLE,
+                          func_enum.BVSgt: self.module.BITVECTOR_SGT,
+                          func_enum.BVSge: self.module.BITVECTOR_SGE,
+                          func_enum.BVNot: self.module.BITVECTOR_NOT,
+                          func_enum.BVNeg: self.module.BITVECTOR_NEG,
+                          func_enum._ApplyUF: self.module.APPLY_UF,
+                          func_enum.Select: self.module.SELECT,
+                          func_enum.Store: self.module.STORE,
+                          func_enum.Distinct: self.module.DISTINCT
           })
 
         # all constants are No_op
-        self._CVC4InvOps = {self.CVC4.VARIABLE: func_enum.No_op,
-                            self.CVC4.CONST_RATIONAL: func_enum.No_op,
-                            self.CVC4.CONST_BITVECTOR: func_enum.No_op,
-                            self.CVC4.CONST_BOOLEAN: func_enum.No_op,
-                            self.CVC4.BOUND_VARIABLE: func_enum.No_op,
+        self._CVC4InvOps = {self.module.VARIABLE: func_enum.No_op,
+                            self.module.CONST_RATIONAL: func_enum.No_op,
+                            self.module.CONST_BITVECTOR: func_enum.No_op,
+                            self.module.CONST_BOOLEAN: func_enum.No_op,
+                            self.module.BOUND_VARIABLE: func_enum.No_op,
                             # Note: losing info about op of applied function
                             # TODO: see if can extract function definition
-                            self.CVC4.APPLY: func_enum.No_op,
-                            self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract}
+                            self.module.APPLY: func_enum.No_op,
+                            self.module.BITVECTOR_EXTRACT: func_enum.Extract}
 
         # Theory constant functions
         def create_bv(width, value):
-            return self._em.mkConst(self.CVC4.BitVector(width, value))
+            return self._em.mkConst(self.module.BitVector(width, value))
 
         def create_int(value):
-            return self._em.mkConst(self.CVC4.Rational(value))
+            return self._em.mkConst(self.module.Rational(value))
 
         def create_real(value):
             if not isinstance(value, Fraction):
                 value = Fraction(value).limit_denominator()
-            return self._em.mkConst(self.CVC4.Rational(value.numerator, value.denominator))
+            return self._em.mkConst(self.module.Rational(value.numerator, value.denominator))
 
         def create_bool(value):
             return self._em.mkBoolConst(value)
@@ -119,10 +116,14 @@ class CVC4Solver(SolverBase):
                             sorts.Real: create_real,
                             sorts.Bool: create_bool}
 
+    @classmethod
+    def _import_func(cls):
+        return __import__('CVC4')
+
     def Reset(self):
         self._smt.reset()
-        self._smt.setOption("dump-to", self.CVC4.SExpr(self.temp_file_name))
-        self._smt.setOption("dump", self.CVC4.SExpr("raw-benchmark"))
+        self._smt.setOption("dump-to", self.module.SExpr(self.temp_file_name))
+        self._smt.setOption("dump", self.module.SExpr("raw-benchmark"))
 
 
     def CheckSat(self):
@@ -137,7 +138,7 @@ class CVC4Solver(SolverBase):
         self._smt.setLogic(logicstr)
 
     def SetOption(self, optionstr, value):
-        self._smt.setOption(optionstr, self.CVC4.SExpr(value))
+        self._smt.setOption(optionstr, self.module.SExpr(value))
 
     def DeclareFun(self, name, inputsorts, outputsort):
         assert isinstance(inputsorts, Sequence), \
@@ -179,7 +180,7 @@ class CVC4Solver(SolverBase):
            -- assume func is a CVC4 function.
         '''
         if self._smt.isDefinedFunction(func):
-            cvc4expr = self._em.mkExpr(self.CVC4.APPLY, func, *args)
+            cvc4expr = self._em.mkExpr(self.module.APPLY, func, *args)
         else:
             cvc4expr = self._em.mkExpr(func, *args)
 

@@ -5,8 +5,7 @@ from collections import Sequence
 from . import sorts
 from . import functions
 from . import terms
-from . import solvers
-
+from .solvers import SOLVERS
 
 def check_solver(f):
     def eval_f(self, *args):
@@ -34,26 +33,26 @@ def check_instance(f):
 
     return eval_f
 
+_TERM_TYPES = frozenset(s.Term for s in SOLVERS)
 
 class smt:
-
-    __solver_map = {'CVC4': solvers.CVC4Solver,
-                    'Z3': solvers.Z3Solver,
-                    'Boolector': solvers.BoolectorSolver}
-    __term_map = {solvers.CVC4Solver: terms.CVC4Term,
-                  solvers.Z3Solver: terms.Z3Term,
-                  solvers.BoolectorSolver: terms.BoolectorTerm}
 
     __infer_sort = {bool: sorts.Bool(),
                     int: sorts.Int(),
                     float: sorts.Real()}
 
-    def __init__(self, solver_name, strict=False):
-        if solver_name not in self.__solver_map:
-            raise ValueError('{} is not a supported solver'.format(solver_name))
-        self._solver_name = solver_name
+    def __init__(self, solver_val, strict=False):
+        if isinstance(solver_val, str):
+            solver_val = SOLVERS.from_string(solver_val)
+        elif not isinstance(solver_val, SOLVERS):
+            raise TypeError('solver_val should be str or SOLVERS, not {}'.format(solver_val))
 
-        self._solver = self.__solver_map[solver_name](strict)
+        if not solver_val.available:
+            raise ValueError("{} is supported but doesn't seem to be installed".format(solver_val._name_))
+
+        self._solver_val = solver_val
+
+        self._solver = solver_val.Solver(strict)
         self.constraints = []
 
         # give the instance access to functions
@@ -75,8 +74,8 @@ class smt:
         return s(*args)
 
     @property
-    def solver_name(self):
-        return self._solver_name
+    def solver_val(self):
+        return self._solver_val
 
     @property
     def solver(self):
@@ -123,13 +122,11 @@ class smt:
     def DeclareConst(self, name, sort):
         assert isinstance(name, str), 'name parameter should be a string'
         sconst = self.solver.DeclareConst(name, sort)
-        return self.__term_map[self.solver.__class__](self,
-                                                      sconst)
+        return self.solver_val.Term(self, sconst)
 
     def TheoryConst(self, sort, value):
         stconst = self.solver.TheoryConst(sort, value)
-        return self.__term_map[self.solver.__class__](self,
-                                                      stconst)
+        return self.solver_val.Term(self, stconst)
 
     @check_instance
     def ApplyFun(self, fun, *args):
@@ -138,8 +135,8 @@ class smt:
             args = tuple(args[0])
 
         for arg in args:
-            if arg.__class__ is not self.__term_map[self._solver.__class__] and \
-               arg.__class__ in self.__term_map.values():  # raw python types are fine
+            if arg.__class__ is not self._solver_val.Term and \
+               arg.__class__ in _TERM_TYPES:  # raw python types are fine
                 raise ValueError('Mixing terms with different solvers is not allowed.\n'
                                  'Found a {}, but the solver is {}'.format(arg.__class__,
                                                                            self._solver.__class__))
@@ -170,8 +167,7 @@ class smt:
             assert len(fun.args) == 0, "Defined function should not have index args"
             s_term = self.solver.ApplyCustomFun(fun.f_id, *solver_args)
 
-        return self.__term_map[self._solver.__class__](self,
-                                                       s_term)
+        return self._solver_val.Term(self, s_term)
 
     @check_instance
     def Assert(self, *constraints):
@@ -211,7 +207,7 @@ class smt:
 
     def Symbol(self, name, sort):
         solversym = self.solver.Symbol(name, sort)
-        term = self.__term_map[self._solver.__class__](self, solversym)
+        term = self._solver_val.Term(self, solversym)
         term._issym = True
         return term
 

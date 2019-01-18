@@ -8,22 +8,14 @@ from ..functions import func_enum
 from collections import Sequence
 import math
 import time
+import warnings
 
 
 class BoolectorSolver(SolverBase):
     def __init__(self, strict):
         super().__init__(strict)
 
-        try:
-            # latest version of boolector
-            self.boolector = __import__('pyboolector')
-        except:
-            self.boolector = __import__('boolector')
-            print("""Deprecation Warning: It appears that you're using an old version of boolector.
-            This might work fine for now but will not be supported going forward. If you get strange behavior,
-            consider upgrading to the latest boolector release from github.
-            """)
-        self._btor = self.boolector.Boolector()
+        self._btor = self.module.Boolector()
 
         # keeping track of Assertions because couldn't figure out
         # how to print a list of Assertions (other than dumping to stdout/a file)
@@ -75,15 +67,30 @@ class BoolectorSolver(SolverBase):
         def timer(start_time, duration):
             return time.time() - start_time > duration
 
-        self._BoolectorOptions = {'produce-models': self.boolector.BTOR_OPT_MODEL_GEN,
-                                  'random-seed': self.boolector.BTOR_OPT_SEED,
-                                  'incremental': self.boolector.BTOR_OPT_INCREMENTAL,
+        self._BoolectorOptions = {'produce-models': self.module.BTOR_OPT_MODEL_GEN,
+                                  'random-seed': self.module.BTOR_OPT_SEED,
+                                  'incremental': self.module.BTOR_OPT_INCREMENTAL,
                                   'sat-solver': self._btor.Set_sat_solver,
                                   'timeout': lambda t: self._btor.Set_term(timer, (time.time(), t))
     }
 
         # am I missing any?
         self._BoolectorLogics = ['QF_BV', 'QF_ABV', 'QF_UFBV', 'QF_AUFBV']
+
+    @classmethod
+    def _import_func(cls):
+        try:
+            # latest version of boolector
+            return __import__('pyboolector')
+        except ModuleNotFoundError:
+            pass
+
+        m = __import__('boolector')
+        warnings.warn("""Deprecation Warning: It appears that you're using an old version of boolector.
+        This might work fine for now but will not be supported going forward. If you get strange behavior,
+        consider upgrading to the latest boolector release from github.
+        """, warnings.DeprecationWarning)
+        return m
 
     def Reset(self):
         self.__init__(self.strict)
