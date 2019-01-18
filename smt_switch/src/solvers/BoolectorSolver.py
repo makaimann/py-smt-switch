@@ -7,9 +7,14 @@ from functools import reduce
 from ..functions import func_enum
 from collections import Sequence
 import math
+import sys
 import time
 import warnings
 
+if sys.version_info[0] < 3 or (sys.version_info[0] == 3 and sys.version_info[1] < 6):
+    _MODULE_NOT_FOUND = ImportError
+else:
+    _MODULE_NOT_FOUND = ModuleNotFoundError
 
 class BoolectorSolver(SolverBase):
     def __init__(self, strict):
@@ -82,14 +87,14 @@ class BoolectorSolver(SolverBase):
         try:
             # latest version of boolector
             return __import__('pyboolector')
-        except ModuleNotFoundError:
+        except _MODULE_NOT_FOUND:
             pass
 
         m = __import__('boolector')
         warnings.warn("""Deprecation Warning: It appears that you're using an old version of boolector.
         This might work fine for now but will not be supported going forward. If you get strange behavior,
         consider upgrading to the latest boolector release from github.
-        """, warnings.DeprecationWarning)
+        """, DeprecationWarning)
         return m
 
     def Reset(self):
