@@ -6,13 +6,22 @@ from .. import sorts
 
 
 class SolverBase(metaclass=ABCMeta):
-    @abstractmethod
     def __init__(self, strict):
         self.constraints = []
         self.Sat = None
         self._strict = strict
         self._tosorts = None
-        
+        self._module = self._import_func()
+
+    @classmethod
+    @abstractmethod
+    def _import_func(cls):
+        pass
+
+    @property
+    def module(self):
+        return self._module
+
     @property
     def strict(self):
         return self._strict

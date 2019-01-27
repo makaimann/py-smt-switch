@@ -13,19 +13,16 @@ class Z3Solver(SolverBase):
     def __init__(self, strict):
         super().__init__(strict)
 
-            # import z3
-        self.z3 = __import__('z3')
-
-        self._z3Sorts = {sorts.BitVec: self.z3.BitVecSort,
-                    sorts.Int: self.z3.IntSort,
-                    sorts.Real: self.z3.RealSort,
-                    sorts.Bool: self.z3.BoolSort,
-                    sorts.Array: self.z3.Z3_ARRAY_SORT,
+        self._z3Sorts = {sorts.BitVec: self.module.BitVecSort,
+                    sorts.Int: self.module.IntSort,
+                    sorts.Real: self.module.RealSort,
+                    sorts.Bool: self.module.BoolSort,
+                    sorts.Array: self.module.Z3_ARRAY_SORT,
                     # for going the other way
-                    self.z3.Z3_BOOL_SORT: lambda var: sorts.Bool(),
-                    self.z3.Z3_INT_SORT: lambda var: sorts.Int(),
-                    self.z3.Z3_REAL_SORT: lambda var: sorts.Real(),
-                    self.z3.Z3_BV_SORT: lambda var: sorts.BitVec(var.size())}
+                    self.module.Z3_BOOL_SORT: lambda var: sorts.Bool(),
+                    self.module.Z3_INT_SORT: lambda var: sorts.Int(),
+                    self.module.Z3_REAL_SORT: lambda var: sorts.Real(),
+                    self.module.Z3_BV_SORT: lambda var: sorts.BitVec(var.size())}
                     # adding array sort later
 
         def get_array_sort(var):
@@ -33,29 +30,29 @@ class Z3Solver(SolverBase):
             range_sort = self._z3Sorts[var.range().kind()](var.range())
             return sorts.Array(domain_sort, range_sort)
 
-        self._z3Sorts[self.z3.Z3_ARRAY_SORT] = get_array_sort
+        self._z3Sorts[self.module.Z3_ARRAY_SORT] = get_array_sort
 
         # function used to create array
         def create_array(name, idxsort, dsort):
             # need to recover parameterized sorts
             z3_idxsort = self._z3Sorts[idxsort.__class__](*idxsort.params)
             z3_dsort = self._z3Sorts[dsort.__class__](*dsort.params)
-            return self.z3.Array(name, z3_idxsort, z3_dsort)
+            return self.module.Array(name, z3_idxsort, z3_dsort)
 
-        self._z3sorts2var = {sorts.BitVec: self.z3.BitVec,
-                        sorts.Int: self.z3.Int,
-                        sorts.Real: self.z3.Real,
-                        sorts.Bool: self.z3.Bool,
+        self._z3sorts2var = {sorts.BitVec: self.module.BitVec,
+                        sorts.Int: self.module.Int,
+                        sorts.Real: self.module.Real,
+                        sorts.Bool: self.module.Bool,
                         sorts.Array: create_array}
 
-        self._z3Funs = {func_enum.Extract: self.z3.Extract,
-                   func_enum.Concat: self.z3.Concat,
-                   func_enum.ZeroExt: self.z3.ZeroExt,
-                   func_enum.Not: self.z3.Not,
+        self._z3Funs = {func_enum.Extract: self.module.Extract,
+                   func_enum.Concat: self.module.Concat,
+                   func_enum.ZeroExt: self.module.ZeroExt,
+                   func_enum.Not: self.module.Not,
                    func_enum.Equals: lambda arg1, arg2: arg1 == arg2,
-                   func_enum.And: self.z3.And,
-                   func_enum.Or: self.z3.Or,
-                   func_enum.Ite: self.z3.If,
+                   func_enum.And: self.module.And,
+                   func_enum.Or: self.module.Or,
+                   func_enum.Ite: self.module.If,
                    func_enum.Sub: lambda arg1, arg2: arg1 - arg2,
                    func_enum.Add: lambda arg1, arg2: arg1 + arg2,
                    func_enum.LT: lambda arg1, arg2: arg1 < arg2,
@@ -68,83 +65,87 @@ class Z3Solver(SolverBase):
                    func_enum.BVAdd: lambda arg1, arg2: arg1 + arg2,
                    func_enum.BVSub: lambda arg1, arg2: arg1 - arg2,
                    func_enum.BVMul: lambda arg1, arg2: arg1*arg2,
-                   func_enum.BVUdiv: self.z3.UDiv,
-                   func_enum.BVUrem: self.z3.URem,
+                   func_enum.BVUdiv: self.module.UDiv,
+                   func_enum.BVUrem: self.module.URem,
                    func_enum.BVShl: lambda arg1, arg2: arg1 << arg2,
                    func_enum.BVAshr: lambda arg1, arg2: arg1 >> arg2,
-                   func_enum.BVLshr: self.z3.LShR,
-                   func_enum.BVUlt: self.z3.ULT,
-                   func_enum.BVUle: self.z3.ULE,
-                   func_enum.BVUgt: self.z3.UGT,
-                   func_enum.BVUge: self.z3.UGE,
+                   func_enum.BVLshr: self.module.LShR,
+                   func_enum.BVUlt: self.module.ULT,
+                   func_enum.BVUle: self.module.ULE,
+                   func_enum.BVUgt: self.module.UGT,
+                   func_enum.BVUge: self.module.UGE,
                    func_enum.BVSlt: lambda arg1, arg2: arg1 < arg2,
                    func_enum.BVSle: lambda arg1, arg2: arg1 <= arg2,
                    func_enum.BVSgt: lambda arg1, arg2: arg1 > arg2,
                    func_enum.BVSge: lambda arg1, arg2: arg1 >= arg2,
                    func_enum.BVNot: lambda arg: ~arg,
                    func_enum.BVNeg: lambda arg: -arg,
-                   func_enum.Store: self.z3.Store,
-                   func_enum.Select: self.z3.Select,
-                   func_enum.Distinct: self.z3.Distinct
+                   func_enum.Store: self.module.Store,
+                   func_enum.Select: self.module.Select,
+                   func_enum.Distinct: self.module.Distinct
         }
 
-        self._z3Funs2swFuns = {self.z3.Z3_OP_EXTRACT: func_enum.Extract,
-                          self.z3.Z3_OP_CONCAT: func_enum.Concat,
-                          self.z3.Z3_OP_ZERO_EXT: func_enum.ZeroExt,
-                          self.z3.Z3_OP_NOT: func_enum.Not,
-                          self.z3.Z3_OP_EQ: func_enum.Equals,
-                          self.z3.Z3_OP_AND: func_enum.And,
-                          self.z3.Z3_OP_OR: func_enum.Or,
-                          self.z3.Z3_OP_ITE: func_enum.Ite,
-                          self.z3.Z3_OP_SUB: func_enum.Sub,
-                          self.z3.Z3_OP_ADD: func_enum.Add,
-                          self.z3.Z3_OP_LT: func_enum.LT,
-                          self.z3.Z3_OP_LE: func_enum.LEQ,
-                          self.z3.Z3_OP_GT: func_enum.GT,
-                          self.z3.Z3_OP_GE: func_enum.GEQ,
-                          self.z3.Z3_OP_BAND: func_enum.BVAnd,
-                          self.z3.Z3_OP_BOR: func_enum.BVOr,
-                          self.z3.Z3_OP_BXOR: func_enum.BVXor,
-                          self.z3.Z3_OP_BADD: func_enum.BVAdd,
-                          self.z3.Z3_OP_BSUB: func_enum.BVSub,
-                          self.z3.Z3_OP_BMUL: func_enum.BVMul,
-                          self.z3.Z3_OP_BUDIV: func_enum.BVUdiv,
-                          self.z3.Z3_OP_BUREM: func_enum.BVUrem,
-                          self.z3.Z3_OP_BSHL: func_enum.BVShl,
-                          self.z3.Z3_OP_BASHR: func_enum.BVAshr,
-                          self.z3.Z3_OP_BLSHR: func_enum.BVLshr,
-                          self.z3.Z3_OP_ULT: func_enum.BVUlt,
-                          self.z3.Z3_OP_ULEQ: func_enum.BVUle,
-                          self.z3.Z3_OP_UGT: func_enum.BVUgt,
-                          self.z3.Z3_OP_UGEQ: func_enum.BVUge,
-                          self.z3.Z3_OP_SLT: func_enum.BVSlt,
-                          self.z3.Z3_OP_SLEQ: func_enum.BVSle,
-                          self.z3.Z3_OP_SGT: func_enum.BVSgt,
-                          self.z3.Z3_OP_SGEQ: func_enum.BVSge,
-                          self.z3.Z3_OP_BNOT: func_enum.BVNot,
-                          self.z3.Z3_OP_BNEG: func_enum.BVNeg,
+        self._z3Funs2swFuns = {self.module.Z3_OP_EXTRACT: func_enum.Extract,
+                          self.module.Z3_OP_CONCAT: func_enum.Concat,
+                          self.module.Z3_OP_ZERO_EXT: func_enum.ZeroExt,
+                          self.module.Z3_OP_NOT: func_enum.Not,
+                          self.module.Z3_OP_EQ: func_enum.Equals,
+                          self.module.Z3_OP_AND: func_enum.And,
+                          self.module.Z3_OP_OR: func_enum.Or,
+                          self.module.Z3_OP_ITE: func_enum.Ite,
+                          self.module.Z3_OP_SUB: func_enum.Sub,
+                          self.module.Z3_OP_ADD: func_enum.Add,
+                          self.module.Z3_OP_LT: func_enum.LT,
+                          self.module.Z3_OP_LE: func_enum.LEQ,
+                          self.module.Z3_OP_GT: func_enum.GT,
+                          self.module.Z3_OP_GE: func_enum.GEQ,
+                          self.module.Z3_OP_BAND: func_enum.BVAnd,
+                          self.module.Z3_OP_BOR: func_enum.BVOr,
+                          self.module.Z3_OP_BXOR: func_enum.BVXor,
+                          self.module.Z3_OP_BADD: func_enum.BVAdd,
+                          self.module.Z3_OP_BSUB: func_enum.BVSub,
+                          self.module.Z3_OP_BMUL: func_enum.BVMul,
+                          self.module.Z3_OP_BUDIV: func_enum.BVUdiv,
+                          self.module.Z3_OP_BUREM: func_enum.BVUrem,
+                          self.module.Z3_OP_BSHL: func_enum.BVShl,
+                          self.module.Z3_OP_BASHR: func_enum.BVAshr,
+                          self.module.Z3_OP_BLSHR: func_enum.BVLshr,
+                          self.module.Z3_OP_ULT: func_enum.BVUlt,
+                          self.module.Z3_OP_ULEQ: func_enum.BVUle,
+                          self.module.Z3_OP_UGT: func_enum.BVUgt,
+                          self.module.Z3_OP_UGEQ: func_enum.BVUge,
+                          self.module.Z3_OP_SLT: func_enum.BVSlt,
+                          self.module.Z3_OP_SLEQ: func_enum.BVSle,
+                          self.module.Z3_OP_SGT: func_enum.BVSgt,
+                          self.module.Z3_OP_SGEQ: func_enum.BVSge,
+                          self.module.Z3_OP_BNOT: func_enum.BVNot,
+                          self.module.Z3_OP_BNEG: func_enum.BVNeg,
                           # Constants are all No_op in smt-switch
-                          self.z3.Z3_OP_FALSE: func_enum.No_op,
-                          self.z3.Z3_OP_TRUE: func_enum.No_op,
-                          self.z3.Z3_OP_UNINTERPRETED: func_enum.No_op,
-                          self.z3.Z3_OP_ANUM: func_enum.No_op,
-                          self.z3.Z3_OP_BNUM: func_enum.No_op,
-                          self.z3.Z3_OP_STORE: func_enum.Store,
-                          self.z3.Z3_OP_SELECT: func_enum.Select,
-                          self.z3.Z3_OP_DISTINCT: func_enum.Distinct}
+                          self.module.Z3_OP_FALSE: func_enum.No_op,
+                          self.module.Z3_OP_TRUE: func_enum.No_op,
+                          self.module.Z3_OP_UNINTERPRETED: func_enum.No_op,
+                          self.module.Z3_OP_ANUM: func_enum.No_op,
+                          self.module.Z3_OP_BNUM: func_enum.No_op,
+                          self.module.Z3_OP_STORE: func_enum.Store,
+                          self.module.Z3_OP_SELECT: func_enum.Select,
+                          self.module.Z3_OP_DISTINCT: func_enum.Distinct}
 
 
-        self._z3Consts = {sorts.BitVec: self.z3.BitVecVal,
-                     sorts.Int: self.z3.IntVal,
-                     sorts.Real: self.z3.RealVal,
-                     sorts.Bool: self.z3.BoolVal}
+        self._z3Consts = {sorts.BitVec: self.module.BitVecVal,
+                     sorts.Int: self.module.IntVal,
+                     sorts.Real: self.module.RealVal,
+                     sorts.Bool: self.module.BoolVal}
         self._z3Options = {'produce-models': 'model',
                       'random-seed': 'smt.random_seed'}
 
 
         # this attribute is used by an inherited function to translate sorts
         self._tosorts = self._z3Sorts
-        self._solver = self.z3.Solver()
+        self._solver = self.module.Solver()
+
+    @classmethod
+    def _import_func(cls):
+        return __import__('z3')
 
     def Reset(self):
         self._solver.reset()
@@ -153,7 +154,7 @@ class Z3Solver(SolverBase):
         # rely on Assert for now
         # chose this way so user can get Assertions, but also aren't added twice
         # self._solver.add(self.constraints)
-        self.Sat = self._solver.check() == self.z3.sat
+        self.Sat = self._solver.check() == self.module.sat
         return self.Sat
 
     def SetLogic(self, logicstr):
@@ -162,7 +163,7 @@ class Z3Solver(SolverBase):
     def SetOption(self, optionstr, value):
         # check if option is defined (some options are always on in z3)
         if optionstr in self._z3Options:
-            self.z3.set_param(self._z3Options[optionstr], value)
+            self.module.set_param(self._z3Options[optionstr], value)
 
     def DeclareFun(self, name, inputsorts, outputsort):
         assert isinstance(inputsorts, Sequence), \
@@ -171,7 +172,7 @@ class Z3Solver(SolverBase):
         sortlist = [self._z3Sorts[sort.__class__](*sort.params)
                         for sort in inputsorts]
         sortlist.append(self._z3Sorts[outputsort.__class__](*outputsort.params))
-        return self.z3.Function(name, *sortlist)
+        return self.module.Function(name, *sortlist)
 
     def DeclareConst(self, name, sort):
         z3const = self._z3sorts2var[sort.__class__](name, *sort.params)

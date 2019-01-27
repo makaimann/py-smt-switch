@@ -243,7 +243,7 @@ class CVC4Term(TermBase):
 
         k = solver_term.getKind()
 
-        if extk == smt._solver.CVC4.BITVECTOR_EXTRACT_OP:
+        if extk == smt._solver.module.BITVECTOR_EXTRACT_OP:
             assert 'cvc4_op' in locals()
             ext_op = cvc4_op.getConstBitVectorExtract()
             op = smt.Extract(ext_op.high, ext_op.low)
@@ -389,7 +389,7 @@ class Z3Term(TermBase):
 
 class BoolectorTerm(TermBase):
     def __init__(self, smt, solver_term):
-        boolector = smt.solver.boolector
+        boolector = smt.solver.module
         sortmap = {boolector.BoolectorBVNode: lambda st: sorts.BitVec(st.width),
                    boolector.BoolectorConstNode: lambda st: sorts.BitVec(st.width),
                    boolector.BoolectorArrayNode: lambda st: sorts.Array(
