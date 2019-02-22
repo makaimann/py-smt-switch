@@ -1,4 +1,4 @@
-# This file is part of the smt-switch project.
+#  This file is part of the smt-switch project.
 # See the file LICENSE in the top-level source directory for licensing information.
 
 from abc import ABCMeta, abstractmethod
@@ -57,23 +57,23 @@ class TermBase(metaclass=ABCMeta):
     def __hash__(self):
         return hash(str(self))
 
-    def __eq__(self, other):
-        if not isinstance(other, TermBase):
-            raise NotImplementedError
-        else:
-            return str(self) == str(other)
-
-    def __ne__(self, other):
-        if not isinstance(other, TermBase):
-            raise NotImplementedError
-        else:
-            return str(self) != str(other)
-
     # def __eq__(self, other):
-    #     return self._smt.ApplyFun(self._smt.Equals, self, other)
+    #     if not isinstance(other, TermBase):
+    #         raise NotImplementedError
+    #     else:
+    #         return str(self) == str(other)
 
     # def __ne__(self, other):
-    #     return self._smt.ApplyFun(self._smt.Not, self == other)
+    #     if not isinstance(other, TermBase):
+    #         raise NotImplementedError
+    #     else:
+    #         return str(self) != str(other)
+
+    def __eq__(self, other):
+        return self._smt.ApplyFun(self._smt.Equals, self, other)
+
+    def __ne__(self, other):
+        return self._smt.ApplyFun(self._smt.Not, self == other)
 
     def __add__(self, other):
         if self.sort.__class__ == sorts.BitVec:
@@ -284,8 +284,8 @@ class CVC4Term(TermBase):
         # TODO: Clean up array -- fix so same as other cases
         if match.group('sort') == 'array':
             # get parameterized values
-            idxmatch = p.search(cvc4sortstr[match.span(0)[1]:])
-            dmatch = p.search(cvc4sortstr[idxmatch.span(0)[1]:])
+            idxmatch = self._sortpattern.search(cvc4sortstr[match.span(0)[1]:])
+            dmatch = self._sortpattern.search(cvc4sortstr[idxmatch.span(0)[1]:])
             idxsort = self._str2sort[idxmatch.group('sort')](idxmatch.group('param'))
             dsort = self._str2sort[dmatch.group('sort')](dmatch.group('param'))
             params = (idxsort, dsort)
@@ -413,13 +413,14 @@ class Z3Term(TermBase):
 
     @property
     def sort(self):
-        return self._smt.solver._z3Sorts[sts.kind()](self._solver_term.sort())
+        sts = self._solver_term.sort()
+        return self._smt.solver._z3Sorts[sts.kind()](sts)
 
     @property
     def op(self):
         # TODO: fix for uninterpreted functions
         enum_op = self._smt.solver._z3Funs2swFuns[self._solver_term.decl().kind()]
-        op = operator(smt, enum_op, func_symbols[enum_op.name])
+        op = operator(self._smt, enum_op, func_symbols[enum_op.name])
 
         # TODO: Find better solution than this
         if enum_op == func_enum.Extract:
@@ -477,13 +478,17 @@ class Z3Term(TermBase):
 class BoolectorTerm(TermBase):
     def __init__(self, smt, solver_term):
         boolector = smt.solver.boolector
-        sortmap = {boolector.BoolectorBVNode: lambda st: sorts.BitVec(st.width),
-                   boolector.BoolectorConstNode: lambda st: sorts.BitVec(st.width),
-                   boolector.BoolectorArrayNode: lambda st: sorts.Array(
-                       sorts.BitVec(st.index_width), sorts.BitVec(st.width)),
-                   boolector._BoolectorParamNode: lambda st: sorts.BitVec(st.width)}
-        sort = sortmap[type(solver_term)](solver_term)
-        super().__init__(smt, solver_term, sort)
+        self._sortmap = {boolector.BoolectorBVNode: lambda st: sorts.BitVec(st.width),
+                         boolector.BoolectorConstNode: lambda st: sorts.BitVec(st.width),
+                         boolector.BoolectorArrayNode: lambda st: sorts.Array(
+                             sorts.BitVec(st.index_width), sorts.BitVec(st.width)),
+                         boolector._BoolectorParamNode: lambda st: sorts.BitVec(st.width)}
+        super().__init__(smt, solver_term)
+
+    @property
+    def sort(self):
+        sort = self._sortmap[type(self._solver_term)](self._solver_term)
+        return sort
 
     def __repr__(self):
         # This isn't the best solution, but boolector's __str__ and __repr__ are not implemented
