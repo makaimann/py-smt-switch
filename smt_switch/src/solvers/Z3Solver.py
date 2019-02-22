@@ -28,6 +28,13 @@ class Z3Solver(SolverBase):
                     self.z3.Z3_BV_SORT: lambda var: sorts.BitVec(var.size())}
                     # adding array sort later
 
+        def bvcomp(v1, v2):
+            eq = v1 == v2
+            one = self.z3.BitVecVal(1, 1)
+            zero = self.z3.BitVecVal(0, 1)
+            return self.z3.If(eq, one, zero)
+
+
         def get_array_sort(var):
             domain_sort = self._z3Sorts[var.domain().kind()](var.domain())
             range_sort = self._z3Sorts[var.range().kind()](var.range())
@@ -51,17 +58,21 @@ class Z3Solver(SolverBase):
         self._z3Funs = {func_enum.Extract: self.z3.Extract,
                    func_enum.Concat: self.z3.Concat,
                    func_enum.ZeroExt: self.z3.ZeroExt,
+                   func_enum.SignExt: self.z3.SignExt,
                    func_enum.Not: self.z3.Not,
                    func_enum.Equals: lambda arg1, arg2: arg1 == arg2,
                    func_enum.And: self.z3.And,
                    func_enum.Or: self.z3.Or,
+                   func_enum.Xor: self.z3.Xor,
                    func_enum.Ite: self.z3.If,
+                   func_enum.Implies: self.z3.Implies,
                    func_enum.Sub: lambda arg1, arg2: arg1 - arg2,
                    func_enum.Add: lambda arg1, arg2: arg1 + arg2,
                    func_enum.LT: lambda arg1, arg2: arg1 < arg2,
                    func_enum.LEQ: lambda arg1, arg2: arg1 <= arg2,
                    func_enum.GT: lambda arg1, arg2: arg1 > arg2,
                    func_enum.GEQ: lambda arg1, arg2: arg1 >= arg2,
+                   func_enum.BVComp: bvcomp,
                    func_enum.BVAnd: lambda arg1, arg2: arg1 & arg2,
                    func_enum.BVOr: lambda arg1, arg2: arg1 | arg2,
                    func_enum.BVXor: lambda arg1, arg2: arg1 ^ arg2,
@@ -91,11 +102,13 @@ class Z3Solver(SolverBase):
         self._z3Funs2swFuns = {self.z3.Z3_OP_EXTRACT: func_enum.Extract,
                           self.z3.Z3_OP_CONCAT: func_enum.Concat,
                           self.z3.Z3_OP_ZERO_EXT: func_enum.ZeroExt,
+                          self.z3.Z3_OP_SIGN_EXT: func_enum.SignExt,
                           self.z3.Z3_OP_NOT: func_enum.Not,
                           self.z3.Z3_OP_EQ: func_enum.Equals,
                           self.z3.Z3_OP_AND: func_enum.And,
                           self.z3.Z3_OP_OR: func_enum.Or,
                           self.z3.Z3_OP_ITE: func_enum.Ite,
+                          self.z3.Z3_OP_IMPLIES: func_enum.Implies,
                           self.z3.Z3_OP_SUB: func_enum.Sub,
                           self.z3.Z3_OP_ADD: func_enum.Add,
                           self.z3.Z3_OP_LT: func_enum.LT,

@@ -12,8 +12,14 @@ import math
 class BoolectorSolver(SolverBase):
     def __init__(self, strict):
         super().__init__(strict)
-        
-        self.boolector = __import__('boolector')
+        try:
+            import pyboolector as boolector
+        except:
+            try:
+                import boolector
+            except:
+                raise RuntimeError("Can't find boolector python bindings")
+        self.boolector = boolector
         self._btor = self.boolector.Boolector()
 
         # keeping track of Assertions because couldn't figure out
@@ -28,10 +34,15 @@ class BoolectorSolver(SolverBase):
         self._BoolectorFuns = {func_enum.Equals: self._btor.Eq,
                                func_enum.And: self.And,
                                func_enum.Or: self.Or,
+                               func_enum.Xor: self._btor.Xor,
                                func_enum.Ite: self._btor.Cond,
+                               func_enum.Implies: self._btor.Implies,
                                func_enum.Not: self._btor.Not,
                                func_enum.Extract: self._btor.Slice,
                                func_enum.Concat: self._btor.Concat,
+                               func_enum.ZeroExt: self._btor.Uext,
+                               func_enum.SignExt: self._btor.Sext,
+                               func_enum.BVComp: self._btor.Eq,
                                func_enum.BVAnd: self._btor.And,
                                func_enum.BVOr: self._btor.Or,
                                func_enum.BVXor: self._btor.Xor,

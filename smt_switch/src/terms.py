@@ -1,44 +1,79 @@
 # This file is part of the smt-switch project.
 # See the file LICENSE in the top-level source directory for licensing information.
 
-from abc import ABCMeta
+from abc import ABCMeta, abstractmethod
 from . import sorts
 from fractions import Fraction
 from .functions import func_enum, func_symbols, operator
 import re
 
-
 class TermBase(metaclass=ABCMeta):
-    def __init__(self, smt, solver_term, sort, op=None, children=None):
+    def __init__(self, smt, solver_term):
         self._smt = smt
         self._solver_term = solver_term
         self._value = None
-        self._sort = sort
-        self._op = op
-        self._children = children
         self._issym = False
 
     @property
+    @abstractmethod
     def sort(self):
-        return self._sort
+        pass
 
     @property
+    @abstractmethod
     def op(self):
-        return self._op
+        pass
 
     @property
+    @abstractmethod
     def children(self):
-        return self._children
+        pass
 
     @property
     def solver_term(self):
         return self._solver_term
 
+    def substitute(self, symmap):
+        stack = [self]
+        visited = set()
+        rebuild = {}
+        solver = self._smt._solver
+        while stack:
+            f = stack.pop()
+            if f not in visited:
+                visited.add(f)
+                stack.append(f)
+                for c in f.children:
+                    stack.append(c)
+            else:
+                # do work
+                if not f.children and f in symmap:
+                    rebuild[f] = symmap[f]
+                elif f.children:
+                    # TODO: re-implement without wrapper functions -- should be much faster
+                    rebuild[f] = self._smt.ApplyFun(f.op, [rebuild[c] if c in rebuild else c for c in f.children])
+        return rebuild[f]
+
+    def __hash__(self):
+        return hash(str(self))
+
     def __eq__(self, other):
-        return self._smt.ApplyFun(self._smt.Equals, self, other)
+        if not isinstance(other, TermBase):
+            raise NotImplementedError
+        else:
+            return str(self) == str(other)
 
     def __ne__(self, other):
-        return self._smt.ApplyFun(self._smt.Not, self == other)
+        if not isinstance(other, TermBase):
+            raise NotImplementedError
+        else:
+            return str(self) != str(other)
+
+    # def __eq__(self, other):
+    #     return self._smt.ApplyFun(self._smt.Equals, self, other)
+
+    # def __ne__(self, other):
+    #     return self._smt.ApplyFun(self._smt.Not, self == other)
 
     def __add__(self, other):
         if self.sort.__class__ == sorts.BitVec:
@@ -228,11 +263,16 @@ class CVC4Term(TermBase):
                           'roundingmode': lambda p: sorts._RoundingMode()
                           }
 
-        p = re.compile('\(?(_ )?(?P<sort>floatingpoint|int|real|bitvector|bitvec|bool|array|roundingmode)\s?\(?(?P<param>\d+)?\)?')
+        self._sortpattern = re.compile('\(?(_ )?(?P<sort>floatingpoint|int|real|bitvector|bitvec|bool|array|roundingmode)\s?\(?(?P<param>\d+)?\)?')
 
+        super().__init__(smt, solver_term)
+
+    @property
+    def sort(self):
+        solver_term = self._solver_term
         cvc4sortstr = solver_term.getType().toString().lower()
 
-        match = p.search(cvc4sortstr)
+        match = self._sortpattern.search(cvc4sortstr)
 
         if not match:
             raise ValueError("Unknown type {}".format(cvc4sortstr))
@@ -268,8 +308,12 @@ class CVC4Term(TermBase):
             assert match.group('param'), 'BitVecs must have a width'
             params = (int(match.group('param')),)
 
-        sort = self._str2sort[match.group('sort')](*params)
+        return self._str2sort[match.group('sort')](*params)
 
+    @property
+    def op(self):
+        smt = self._smt
+        solver_term = self._solver_term
         # TODO: handle this check more elegantly -- perhaps a lambda in the dict
         extk= -1
         if solver_term.hasOperator():
@@ -291,13 +335,15 @@ class CVC4Term(TermBase):
         else:
             raise KeyError('{} not a recognized CVC4 enum'.format(k))
 
+        return op
+
+    @property
+    def children(self):
         # query children from solver
         children = []
-        for c in solver_term.getChildren():
-            children.append(CVC4Term(smt, c))
-
-        super().__init__(smt, solver_term, sort, op, children)
-
+        for c in self._solver_term.getChildren():
+            children.append(CVC4Term(self._smt, c))
+        return children
 
     def __repr__(self):
         return self.solver_term.toString()
@@ -357,30 +403,36 @@ class CVC4Term(TermBase):
 
 class Z3Term(TermBase):
     def __init__(self, smt, solver_term):
-
-        sts = solver_term.sort()
-        sort = smt.solver._z3Sorts[sts.kind()](sts)
-
-        # TODO: fix for uninterpreted functions
-        enum_op = smt.solver._z3Funs2swFuns[solver_term.decl().kind()]
-        op = operator(smt, enum_op, func_symbols[enum_op.name])
-
-        # TODO: Find better solution than this
-        if enum_op == func_enum.Extract:
-            op = smt.Extract(*solver_term.decl().params())
-
-        # create children
-        children = []
-        for c in solver_term.children():
-            children.append(Z3Term(smt, c))
-
-        super().__init__(smt, solver_term, sort, op, children)
+        super().__init__(smt, solver_term)
 
     def __repr__(self):
         if self._smt.strict:
             return self.solver_term.sexpr()
         else:
             return self.solver_term.__repr__()
+
+    @property
+    def sort(self):
+        return self._smt.solver._z3Sorts[sts.kind()](self._solver_term.sort())
+
+    @property
+    def op(self):
+        # TODO: fix for uninterpreted functions
+        enum_op = self._smt.solver._z3Funs2swFuns[self._solver_term.decl().kind()]
+        op = operator(smt, enum_op, func_symbols[enum_op.name])
+
+        # TODO: Find better solution than this
+        if enum_op == func_enum.Extract:
+            op = self._smt.Extract(*self._solver_term.decl().params())
+        return op
+
+    @property
+    def children(self):
+        # create children
+        children = []
+        for c in self._solver_term.children():
+            children.append(Z3Term(self._smt, c))
+        return children
 
     def as_int(self):
         return self._value.as_long()

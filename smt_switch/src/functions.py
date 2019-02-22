@@ -48,9 +48,11 @@ def _Or(*args):
 # make it an OrderedDict so that enum values are always the same
 func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
                             ('Or', fdata(0, 2, sys.maxsize, _Or)),
+                            ('Xor', fdata(0, 2, sys.maxsize)),
                             ('Equals', fdata(0, 2, 2)),
                             ('Not', fdata(0, 1, 1)),
                             ('Ite', fdata(0, 3, 3)),
+                            ('Implies', fdata(0, 2, 2)),
                             ('Sub', fdata(0, 2, 2)),
                             ('Add', fdata(0, 2, sys.maxsize)),
                             ('LT', fdata(0, 2, 2)),
@@ -59,7 +61,9 @@ func_symbols = OrderedDict([('And', fdata(0, 2, sys.maxsize, _And)),
                             ('GEQ', fdata(0, 2, 2)),
                             ('Extract', fdata(2, 1, 1)),
                             ('Concat', fdata(0, 2, 2)),
-                            ('ZeroExt', fdata(0, 2, 2)),
+                            ('ZeroExt', fdata(1, 1, 1)),
+                            ('SignExt', fdata(1, 1, 1)),
+                            ('BVComp', fdata(0, 2, 2)),
                             ('BVAnd', fdata(0, 2, 2)),
                             ('BVOr', fdata(0, 2, 2)),
                             ('BVXor', fdata(0, 2, 2)),
@@ -150,7 +154,7 @@ class operator:
             assert len(func_info) in {2, 3}, \
               "Expecting function to be (name, solver object) " + \
               "with a third parameter for the implementation if " + \
-              "it's a define-fun macros"
+              "it's a define-fun macro"
             self._fname = func_info[0]
             self._f_id = func_info[1]
             self._f_type = "uf"

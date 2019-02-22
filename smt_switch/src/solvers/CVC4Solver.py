@@ -50,18 +50,22 @@ class CVC4Solver(SolverBase):
         self._CVC4Funs = \
           reversabledict({func_enum.Extract: self.CVC4.BitVectorExtract,
                           func_enum.Concat: self.CVC4.BITVECTOR_CONCAT,
-                          func_enum.ZeroExt: self.CVC4.BITVECTOR_ZERO_EXTEND,
+                          func_enum.ZeroExt: self.CVC4.BitVectorZeroExtend,
+                          func_enum.SignExt: self.CVC4.BitVectorSignExtend,
                           func_enum.Equals: self.CVC4.EQUAL,
                           func_enum.Not: self.CVC4.NOT,
                           func_enum.And: self.CVC4.AND,
                           func_enum.Or: self.CVC4.OR,
+                          func_enum.Xor: self.CVC4.XOR,
                           func_enum.Ite: self.CVC4.ITE,
+                          func_enum.Implies: self.CVC4.IMPLIES,
                           func_enum.Sub: self.CVC4.MINUS,
                           func_enum.Add: self.CVC4.PLUS,
                           func_enum.LT: self.CVC4.LT,
                           func_enum.LEQ: self.CVC4.LEQ,
                           func_enum.GT: self.CVC4.GT,
                           func_enum.GEQ: self.CVC4.GEQ,
+                          func_enum.BVComp: self.CVC4.BITVECTOR_COMP,
                           func_enum.BVAnd: self.CVC4.BITVECTOR_AND,
                           func_enum.BVOr: self.CVC4.BITVECTOR_OR,
                           func_enum.BVXor: self.CVC4.BITVECTOR_XOR,
@@ -116,6 +120,8 @@ class CVC4Solver(SolverBase):
                             # TODO: see if can extract function definition
                             self.CVC4.APPLY: func_enum.No_op,
                             self.CVC4.BITVECTOR_EXTRACT: func_enum.Extract,
+                            self.CVC4.BITVECTOR_ZERO_EXTEND: func_enum.ZeroExt,
+                            self.CVC4.BITVECTOR_SIGN_EXTEND: func_enum.SignExt,
                             self.CVC4.FLOATINGPOINT_FP: func_enum.No_op,
                             self.CVC4.NULL_EXPR: func_enum.No_op}
 
@@ -214,7 +220,6 @@ class CVC4Solver(SolverBase):
         return cvc4tconst
 
     def ApplyFun(self, f_enum, indices, *args):
-
         if f_enum not in self._CVC4Funs:
             raise NotImplementedError("{} has not been implemented in CVC4 yet".format(f_enum))
 
